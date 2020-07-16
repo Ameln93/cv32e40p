@@ -1903,7 +1903,18 @@ module riscv_decoder
           end
         end
         // VPU && !FPU
+        // VPU uses STORE-FP for vector store operations
+        // At the moment simple vector stride operation is supported
         else if (VPU == 1) begin
+
+          alu_op_a_mux_sel_o  = OP_A_VINSN;
+          alu_op_b_mux_sel_o  = OP_B_VCSR;
+          alu_op_c_mux_sel_o  = OP_C_VADDR;
+
+          rega_used_o         = 1'b0;
+          regb_used_o         = 1'b0;
+          regc_used_o         = 1'b1;
+
           data_req            = 1'b0;
           data_we_o           = 1'b0;
           rega_used_o         = 1'b1;
@@ -1952,12 +1963,22 @@ module riscv_decoder
             default: illegal_insn_o = 1'b1;
           endcase
         end
-        // FPU!=1
+        // FPU!=1 && VPU==1
+        // VPU uses STORE-FP for vector store operations
+        // At the moment simple vector stride operation is supported
         else if (VPU == 1) begin
+
+          alu_op_a_mux_sel_o  = OP_A_VINSN;
+          alu_op_b_mux_sel_o  = OP_B_VCSR;
+          alu_op_c_mux_sel_o  = OP_C_VADDR;
+
+          rega_used_o         = 1'b0;
+          regb_used_o         = 1'b0;
+          regc_used_o         = 1'b1;
+
           data_req            = 1'b0;
           regfile_mem_we      = 1'b0;
           reg_fp_d_o          = 1'b0;
-          rega_used_o         = 1'b0;
           alu_operator_o      = ALU_ADD;
           instr_multicycle_o  = 1'b0;
 
@@ -2062,7 +2083,6 @@ module riscv_decoder
         endcase
       end
 
-
       // _   _______ _   _
       // | | | | ___ \ | | |
       // | | | | |_/ / | | |
@@ -2070,35 +2090,37 @@ module riscv_decoder
       // \ \_/ / |   | |_| |
       //  \___/\_|    \___/
       //
-      // Vector instruction are encoded in VPU
+      // Vector instruction are decoded in VPU
+      // Currently VPU supports only instruction without
+      // using general purpose registers as source or destination
+      // so latendy is one cycle to detect invalid insn
+
       OPCODE_OP_V: begin
         if (VPU == 1) begin
-              apu_en           = 1'b1;
-              alu_en_o         = 1'b0;
-
-              apu_flags_src_o  = APU_FLAGS_VEC;
-              apu_type_o       = APUTYPE_V;
-
-              // currently VPU supports only instruction without
-              // using general purpose registers as source or destination
-              // so latendy is one cycle to detect invalid insn
-              apu_lat_o        = 2'h0;
+              apu_en              = 1'b1;
+              alu_en_o            = 1'b0;
+              apu_op_o            = {APU_WOP_CPU{1'b0}};
+              apu_lat_o           = 2'h0;
+              apu_flags_src_o     = APU_FLAGS_VEC;
+              apu_type_o          = APUTYPE_V;
               // no registers used shoud be default
-              rega_used_o      = 1'b0;
-              regb_used_o      = 1'b0;
-              regc_used_o      = 1'b0;
-              reg_fp_a_o       = 1'b0;
-              reg_fp_b_o       = 1'b0;
-              reg_fp_c_o       = 1'b0;
-              reg_fp_d_o       = 1'b0;
+              rega_used_o         = 1'b0;
+              regb_used_o         = 1'b0;
+              regc_used_o         = 1'b0;
+              reg_fp_a_o          = 1'b0;
+              reg_fp_b_o          = 1'b0;
+              reg_fp_c_o          = 1'b0;
+              reg_fp_d_o          = 1'b0;
 
-              // VPU!=1
+              alu_op_a_mux_sel_o  = OP_A_VINSN;
+              alu_op_b_mux_sel_o  = OP_B_VCSR;
+              alu_op_c_mux_sel_o  = OP_C_VADDR;
+
+        // VPU!=1
         end else begin
           illegal_insn_o = 1'b1;
         end
       end
-
-
 
       /*
       // Comment out, while it uses the same opcode like the official Vector extension
@@ -2508,7 +2530,7 @@ module riscv_decoder
     if (data_misaligned_i == 1'b1)
     begin
       // only part of the pipeline is unstalled, make sure that the
-      // correct operands are sent to the AGU
+      // correct operands are sent to the APU
       alu_op_a_mux_sel_o  = OP_A_REGA_OR_FWD;
       alu_op_b_mux_sel_o  = OP_B_IMM;
       imm_b_mux_sel_o     = IMMB_PCINCR;

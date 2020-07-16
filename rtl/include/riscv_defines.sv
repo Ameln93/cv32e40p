@@ -244,9 +244,7 @@ parameter OP_A_CURRPC      = 3'b001;
 parameter OP_A_IMM         = 3'b010;
 parameter OP_A_REGB_OR_FWD = 3'b011;
 parameter OP_A_REGC_OR_FWD = 3'b100;
-parameter OP_V_ADDR        = 3'b101;
-parameter OP_V_CSR         = 3'b110;
-parameter OP_V_INSN        = 3'b111;
+parameter OP_A_VINSN       = 3'b111;
 
 // immediate a selection
 parameter IMMA_Z      = 1'b0;
@@ -258,6 +256,7 @@ parameter OP_B_REGC_OR_FWD = 3'b001;
 parameter OP_B_IMM         = 3'b010;
 parameter OP_B_REGA_OR_FWD = 3'b011;
 parameter OP_B_BMASK       = 3'b100;
+parameter OP_B_VCSR        = 3'b111;
 
 // immediate b selection
 parameter IMMB_I      = 4'b0000;
@@ -295,6 +294,7 @@ parameter MIMM_S3      = 1'b1;
 parameter OP_C_REGC_OR_FWD = 2'b00;
 parameter OP_C_REGB_OR_FWD = 2'b01;
 parameter OP_C_JT          = 2'b10;
+parameter OP_C_VADDR       = 3'b11;
 
 // branch types
 parameter BRANCH_NONE = 2'b00;

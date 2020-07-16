@@ -155,7 +155,7 @@ module riscv_id_stage
     output logic [WAPUTYPE-1:0]         apu_type_ex_o,
     output logic [APU_WOP_CPU-1:0]      apu_op_ex_o,
     output logic [1:0]                  apu_lat_ex_o,
-    output logic [APU_NARGS_CPU-1:0][31:0]                 apu_operands_ex_o,
+    output logic [APU_NARGS_CPU-1:0][31:0] apu_operands_ex_o,
     output logic [APU_NDSFLAGS_CPU-1:0] apu_flags_ex_o,
     output logic [5:0]                  apu_waddr_ex_o,
 
@@ -412,9 +412,11 @@ module riscv_id_stage
   logic [1:0]  operand_a_fw_mux_sel;
   logic [1:0]  operand_b_fw_mux_sel;
   logic [1:0]  operand_c_fw_mux_sel;
+
   logic [31:0] operand_a_fw_id;
   logic [31:0] operand_b_fw_id;
   logic [31:0] operand_c_fw_id;
+
 
   logic [31:0] operand_b, operand_b_vec;
   logic [31:0] operand_c, operand_c_vec;
@@ -635,6 +637,7 @@ module riscv_id_stage
       OP_A_REGC_OR_FWD:  alu_operand_a = operand_c_fw_id;
       OP_A_CURRPC:       alu_operand_a = pc_id_i;
       OP_A_IMM:          alu_operand_a = imm_a;
+      OP_A_VINSN:        alu_operand_a = instr;
       default:           alu_operand_a = operand_a_fw_id;
     endcase; // case (alu_op_a_mux_sel)
   end
@@ -694,6 +697,7 @@ module riscv_id_stage
       OP_B_REGC_OR_FWD:  operand_b = operand_c_fw_id;
       OP_B_IMM:          operand_b = imm_b;
       OP_B_BMASK:        operand_b = $unsigned(operand_b_fw_id[4:0]);
+      OP_B_VCSR:        operand_b = 0; // later set by ex_stage
       default:           operand_b = operand_b_fw_id;
     endcase // case (alu_op_b_mux_sel)
   end
@@ -740,6 +744,7 @@ module riscv_id_stage
       OP_C_REGC_OR_FWD:  operand_c = operand_c_fw_id;
       OP_C_REGB_OR_FWD:  operand_c = operand_b_fw_id;
       OP_C_JT:           operand_c = jump_target;
+      OP_C_VADDR:        operand_c = operand_c_fw_id;
       default:           operand_c = operand_c_fw_id;
     endcase // case (alu_op_c_mux_sel)
   end
@@ -829,14 +834,16 @@ module riscv_id_stage
     if (APU == 1) begin : apu_op_preparation
 
       if (APU_NARGS_CPU >= 1)
-       assign apu_operands[0] = alu_operand_a;
+        assign apu_operands[0] = alu_operand_a;
       if (APU_NARGS_CPU >= 2)
        assign apu_operands[1] = alu_operand_b;
       if (APU_NARGS_CPU >= 3)
        assign apu_operands[2] = alu_operand_c;
 
-      // write reg
-      assign apu_waddr = regfile_alu_waddr_id;
+     // Write result of APU to this register
+     // So far VPU doen't write back result to the general purpose register
+     // Address 0 cannot be written, used as sink for meaningless APU response
+     assign apu_waddr = (VPU == 1) ? '0 : regfile_alu_waddr_id;
 
       // flags
       always_comb begin
@@ -862,7 +869,6 @@ module riscv_id_stage
         endcase
        end
 
-      // dependency checks
       always_comb begin
         unique case (alu_op_a_mux_sel)
           OP_A_REGA_OR_FWD: begin
@@ -872,11 +878,6 @@ module riscv_id_stage
           OP_A_REGB_OR_FWD: begin
              apu_read_regs[0]        = regfile_addr_rb_id;
              apu_read_regs_valid[0]  = 1'b1;
-          end
-          // VPU
-          OP_V_INSN: begin
-            apu_read_regs[0]        = instr_rdata_i;
-            apu_read_regs_valid[0]  = 1'b1;
           end
           default: begin
              apu_read_regs[0]        = regfile_addr_ra_id;
@@ -900,10 +901,6 @@ module riscv_id_stage
              apu_read_regs_valid[1] = 1'b1;
           end
           //VPU
-          OP_V_ADDR: begin
-             apu_read_regs[1]       = regfile_addr_ra_id;
-             apu_read_regs_valid[1] = 1'b1;
-          end
           default: begin
              apu_read_regs[1]        = regfile_addr_rb_id;
              apu_read_regs_valid [1] = 1'b0;
@@ -922,10 +919,11 @@ module riscv_id_stage
              apu_read_regs_valid[2] = 1'b1;
           end
           // VPU case equal to default
-          // OP_V_CSR: begin
-          //  apu_read_regs[1]        = '0;
-          //  apu_read_regs_valid [1] = 1'b0;
-          //end
+          OP_C_VADDR: begin
+             apu_read_regs[2]        = regfile_addr_rc_id;
+             apu_read_regs_valid [2] = 1'b1;
+          end
+
           default: begin
              apu_read_regs[2]        = regfile_addr_rc_id;
              apu_read_regs_valid [2] = 1'b0;

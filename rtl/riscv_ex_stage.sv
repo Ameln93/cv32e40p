@@ -199,21 +199,14 @@ module riscv_ex_stage
   logic           apu_ready;
   logic           apu_gnt;
 
-  logic [2:0][5:0] apu_read_regs;
-  logic [2:0]      apu_read_regs_valid;
+  logic [APU_NARGS_CPU-1:0][31:0] apu_operands;
 
   always_comb begin
-    if (VPU == 1) begin
-      apu_read_regs[0]    = apu_read_regs_i[0];
-      apu_read_regs[1]    = apu_read_regs_i[1];
-      apu_read_regs[2]    = comp_vcsr_i;
-
-      apu_read_regs_valid[0] = apu_read_regs_valid_i[0];
-      apu_read_regs_valid[1] = apu_read_regs_valid_i[1];
-      apu_read_regs_valid[2] = '1;
-    end else begin
-      apu_read_regs       = apu_read_regs_i;
-      apu_read_regs_valid = apu_read_regs_valid_i;
+    for (int i = 0; i < APU_NARGS_CPU; i++) begin
+      apu_operands[i] = apu_operands_i[i];
+      if (i == 2 && VPU == 1) begin
+        apu_operands[i] = comp_vcsr_i;
+      end
     end
   end
 
@@ -384,8 +377,8 @@ module riscv_ex_stage
          .active_o           ( apu_active                     ),
          .stall_o            ( apu_stall                      ),
 
-         .read_regs_i        ( apu_read_regs                  ),
-         .read_regs_valid_i  ( apu_read_regs_valid            ),
+         .read_regs_i        ( apu_read_regs_i                ),
+         .read_regs_valid_i  ( apu_read_regs_valid_i          ),
          .read_dep_o         ( apu_read_dep_o                 ),
          .write_regs_i       ( apu_write_regs_i               ),
          .write_regs_valid_i ( apu_write_regs_valid_i         ),
@@ -406,7 +399,18 @@ module riscv_ex_stage
          assign apu_perf_wb_o  = wb_contention | wb_contention_lsu;
          assign apu_ready_wb_o = ~(apu_active | apu_en_i | apu_stall) | apu_valid;
 
-         if ( SHARED_FP ) begin
+         if (VPU == 1) begin
+            assign apu_master_req_o      = apu_req;
+            assign apu_master_ready_o    = apu_ready;
+            assign apu_gnt               = apu_master_gnt_i;
+            assign apu_valid             = apu_master_valid_i;
+            assign apu_master_operands_o = apu_operands;
+            assign apu_master_op_o       = apu_op_i;
+            assign apu_result            = apu_master_result_i;
+            assign fpu_fflags_we_o       = apu_valid;
+            assign fpu_ready             = 1'b1;
+         end
+         else if ( SHARED_FP ) begin
             assign apu_master_req_o      = apu_req;
             assign apu_master_ready_o    = apu_ready;
             assign apu_gnt               = apu_master_gnt_i;
