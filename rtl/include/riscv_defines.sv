@@ -52,6 +52,7 @@ parameter OPCODE_OP_FMSUB  = 7'h47;
 parameter OPCODE_OP_FNMSUB = 7'h4b;
 parameter OPCODE_STORE_FP  = 7'h27;
 parameter OPCODE_LOAD_FP   = 7'h07;
+parameter OPCODE_OP_V      = 7'h57;
 
 // those opcodes are now used for PULP custom instructions
 // parameter OPCODE_CUST0     = 7'h0b
@@ -61,8 +62,10 @@ parameter OPCODE_LOAD_FP   = 7'h07;
 parameter OPCODE_LOAD_POST  = 7'h0b;
 parameter OPCODE_STORE_POST = 7'h2b;
 parameter OPCODE_PULP_OP    = 7'h5b;
-parameter OPCODE_VECOP      = 7'h57;
 parameter OPCODE_HWLOOP     = 7'h7b;
+// not compatible with Vector extension
+// while it uses the same opcode
+//parameter OPCODE_VECOP      = 7'h57;
 
 parameter REGC_S1   = 2'b10;
 parameter REGC_S4   = 2'b00;
@@ -451,6 +454,33 @@ parameter CSR_DPC            = 12'h7b1;
 parameter CSR_DSCRATCH0      = 12'h7b2; // optional
 parameter CSR_DSCRATCH1      = 12'h7b3; // optional
 
+  // VPU
+parameter CSR_VLENB     = '0;
+parameter CSR_VTYPE     = '0;
+parameter CSR_VL        = '0;
+parameter CSR_VSTART    = '0;
+parameter CSR_VXSAT     = '0;
+parameter CSR_VXRM      = '0;
+parameter CSR_VCSR      = '0;
 
+///////////////////////////////////////////////////////////
+// __   _____ _   _   __  __                _            //
+// \ \ / / _ \ | | | |  \/  |__ _ _ __ _ __(_)_ _  __ _  //
+//  \ V /|  _/ |_| | | |\/| / _` | '_ \ '_ \ | ' \/ _` | //
+//   \_/ |_|  \___/  |_|  |_\__,_| .__/ .__/_|_||_\__, | //
+//                               |_|  |_|         |___/  //
+//                                                       //
+///////////////////////////////////////////////////////////
+
+parameter P_VILL    = 31;
+
+// TODO: OPTIMIZE bit widths by adopting them to VLEN --> safe FF in cs_register
+parameter W_VTYPE   = 32;
+parameter W_VL      = 32;
+parameter W_VSTART  = 32;
+parameter W_VXRM    =  2;
+parameter W_VXSAT   =  1;
+parameter W_VCSR    =  3;
+parameter W_VLENB   = 32;
 
 endpackage

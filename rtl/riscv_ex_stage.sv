@@ -93,6 +93,11 @@ module riscv_ex_stage
   output logic [C_FFLAG-1:0]          fpu_fflags_o,
   output logic                        fpu_fflags_we_o,
 
+  // VPU
+  input  logic [31:0]                 comp_vcsr_i,
+  output logic [W_VTYPE-1:0]          vtype_o,
+  output logic                        vtype_we_o,
+
   // APU signals
   input  logic                        apu_en_i,
   input  logic [APU_WOP_CPU-1:0]      apu_op_i,

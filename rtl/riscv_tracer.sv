@@ -1014,7 +1014,7 @@ module riscv_tracer (
         {25'b?, OPCODE_STORE_FP}:   trace.printStoreInstr();
         {25'b?, OPCODE_STORE_POST}: trace.printStoreInstr();
         {25'b?, OPCODE_HWLOOP}:     trace.printHwloopInstr();
-        {25'b?, OPCODE_VECOP}:      trace.printVecInstr();
+        //{25'b?, OPCODE_VECOP}:      trace.printVecInstr();
         default:           trace.printMnemonic("INVALID");
       endcase // unique case (instr)
 

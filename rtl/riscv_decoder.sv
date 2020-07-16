@@ -2037,6 +2037,9 @@ module riscv_decoder
         endcase
       end
 
+      /*
+      // Comment out, while it uses the same opcode like the official Vector extension
+
       OPCODE_VECOP: begin
         regfile_alu_we      = 1'b1;
         rega_used_o         = 1'b1;
@@ -2179,7 +2182,7 @@ module riscv_decoder
             `USE_APU_DSP_MULT
           end
 
-          /*  COMPLEX INSTRUCTIONS */
+          //  COMPLEX INSTRUCTIONS
 
           6'b01010_1: begin // pc.clpxmul.h.{r,i}.{/,div2,div4,div8}
             alu_en_o             = 1'b0;
@@ -2241,6 +2244,7 @@ module riscv_decoder
           default: illegal_insn_o = 1'b1;
         endcase
       end
+      */
 
 
       ////////////////////////////////////////////////

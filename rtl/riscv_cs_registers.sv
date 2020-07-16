@@ -72,6 +72,11 @@ module riscv_cs_registers
   input  logic [C_FFLAG-1:0] fflags_i,
   input  logic               fflags_we_i,
 
+  // VPU
+  output logic [31:0]         comp_vcsr_o,
+  input  logic [W_VTYPE-1:0]  vtype_i,
+  input  logic                vtype_we_i,
+
   // Interrupts
   output logic            m_irq_enable_o,
   output logic            u_irq_enable_o,
@@ -158,6 +163,9 @@ module riscv_cs_registers
   localparam MAX_N_PMP_CFG     =  4;
   localparam N_PMP_CFG         = N_PMP_ENTRIES % 4 == 0 ? N_PMP_ENTRIES/4 : N_PMP_ENTRIES/4 + 1;
 
+  // VPU constant
+  localparam VLEN  = 128;
+  localparam VLENB = VLEN/8;
 
 `ifdef ASIC_SYNTHESIS
   localparam N_PERF_REGS     = 1;
@@ -188,6 +196,7 @@ module riscv_cs_registers
     | (0                << 13)  // N - User level interrupts supported
     | (0                << 18)  // S - Supervisor mode implemented
     | (32'(PULP_SECURE) << 20)  // U - User mode implemented
+    | (32'(VPU)         << 21)  // V - Vector extension
     | (1                << 23)  // X - Non-standard extensions present
     | (32'(MXL)         << 30); // M-XLEN
 
@@ -243,9 +252,19 @@ module riscv_cs_registers
   logic [31:0] csr_wdata_int;
   logic [31:0] csr_rdata_int;
   logic        csr_we_int;
+
+  // FPU
   logic [C_RM-1:0]     frm_q, frm_n;
   logic [C_FFLAG-1:0]  fflags_q, fflags_n;
   logic [C_PC-1:0]     fprec_q, fprec_n;
+
+  // VPU
+  logic [W_VTYPE-1:0]   vtype_q, vtype_n;
+  logic [W_VL-1:0]      vl_q, vl_n;
+  logic [W_VSTART-1:0]  vstart_q, vstart_n;
+  logic [W_VXSAT-1:0]   vxsat_q, vxsat_n;
+  logic [W_VXRM-1:0]    vxrm_q, vxrm_n;
+  logic [W_VCSR-1:0]    vcsr_q, vcsr_n;
 
   // Interrupt control signals
   logic [31:0] mepc_q, mepc_n;
@@ -313,6 +332,16 @@ if(PULP_SECURE==1) begin
       12'h002: csr_rdata_int = (FPU == 1) ? {29'b0, frm_q}           : '0;
       12'h003: csr_rdata_int = (FPU == 1) ? {24'b0, frm_q, fflags_q} : '0;
       12'h006: csr_rdata_int = (FPU == 1) ? {27'b0, fprec_q}         : '0; // Optional precision control for FP DIV/SQRT Unit
+
+      // VPU CSRs
+      CSR_VLENB:  csr_rdata_int = (VPU == 1) ? VLENB    : '0;
+      CSR_VTYPE:  csr_rdata_int = (VPU == 1) ? vtype_q  : '0;
+      CSR_VL:     csr_rdata_int = (VPU == 1) ? vl_q     : '0;
+      CSR_VSTART: csr_rdata_int = (VPU == 1) ? vstart_q : '0;
+      CSR_VXRM:   csr_rdata_int = (VPU == 1) ? {30'b0, vxrm_q}  : '0;
+      CSR_VXSAT:  csr_rdata_int = (VPU == 1) ? {31'b0, vxsat_q} : '0;
+      CSR_VCSR:   csr_rdata_int = (VPU == 1) ? {29'b0, vcsr_q}  : '0;
+
       // mstatus
       12'h300: csr_rdata_int = {
                                   14'b0,
@@ -399,6 +428,16 @@ end else begin //PULP_SECURE == 0
       12'h002: csr_rdata_int = (FPU == 1) ? {29'b0, frm_q}           : '0;
       12'h003: csr_rdata_int = (FPU == 1) ? {24'b0, frm_q, fflags_q} : '0;
       12'h006: csr_rdata_int = (FPU == 1) ? {27'b0, fprec_q}         : '0; // Optional precision control for FP DIV/SQRT Unit
+
+      +      // VPU CSRs
+      CSR_VLENB:  csr_rdata_int = (VPU == 1) ? VLENB    : '0;
+      CSR_VTYPE:  csr_rdata_int = (VPU == 1) ? vtype_q  : '0;
+      CSR_VL:     csr_rdata_int = (VPU == 1) ? vl_q     : '0;
+      CSR_VSTART: csr_rdata_int = (VPU == 1) ? vstart_q : '0;
+      CSR_VXRM:   csr_rdata_int = (VPU == 1) ? {30'b0, vxrm_q}  : '0;
+      CSR_VXSAT:  csr_rdata_int = (VPU == 1) ? {31'b0, vxsat_q} : '0;
+      CSR_VCSR:   csr_rdata_int = (VPU == 1) ? {29'b0, vcsr_q}  : '0;
+
       // mstatus: always M-mode, contains IE bit
       12'h300: csr_rdata_int = {
                                   14'b0,
@@ -460,6 +499,14 @@ if(PULP_SECURE==1) begin
     fflags_n                 = fflags_q;
     frm_n                    = frm_q;
     fprec_n                  = fprec_q;
+
+    vtype_n                  = vtype_q;
+    vl_n                     = vl_q;
+    vstart_n                 = vstart_q;
+    vxsat_n                  = vxsat_q;
+    vxrm_n                   = vxrm_q;
+    vcsr_n                   = vcsr_q;
+
     mscratch_n               = mscratch_q;
     mepc_n                   = mepc_q;
     uepc_n                   = uepc_q;
@@ -485,6 +532,7 @@ if(PULP_SECURE==1) begin
     if (FPU == 1) if (fflags_we_i) fflags_n = fflags_i | fflags_q;
 
     casex (csr_addr_i)
+
       // fcsr: Floating-Point Control and Status Register (frm, fflags, fprec).
       12'h001: if (csr_we_int) fflags_n = (FPU == 1) ? csr_wdata_int[C_FFLAG-1:0] : '0;
       12'h002: if (csr_we_int) frm_n    = (FPU == 1) ? csr_wdata_int[C_RM-1:0]    : '0;
@@ -494,6 +542,16 @@ if(PULP_SECURE==1) begin
       end
       12'h006: if (csr_we_int) fprec_n = (FPU == 1) ? csr_wdata_int[C_PC-1:0]    : '0;
 
+      // VPU
+      CSR_VTYPE:    if (csr_we_int) vtype_n   = (VPU == 1) ? csr_wdata_int[W_VTYPE-1:0]   : '0;
+      CSR_VL:       if (csr_we_int) vl_n      = (VPU == 1) ? csr_wdata_int[W_VL-1:0]      : '0;
+      CSR_VSTART:   if (csr_we_int) vstart_n  = (VPU == 1) ? csr_wdata_int[W_VSTART-1:0]  : '0;
+      CSR_VXRM:     if (csr_we_int) vxrm_n    = (VPU == 1) ? csr_wdata_int[W_VXRM-1:0]    : '0;
+      CSR_VXSAT:    if (csr_we_int) vxsat_n   = (VPU == 1) ? csr_wdata_int[W_VXSAT-1:0]   : '0;
+      CSR_VCSR:     if (csr_we_int) begin
+        vxsat_n   = (VPU == 1) ? csr_wdata_int[W_VXSAT-1:0]             : '0;
+        vxrm_n    = (VPU == 1) ? csr_wdata_int[W_VXRM+W_VXRM-1:W_VXSAT] : '0;
+      end
       // mstatus: IE bit
       12'h300: if (csr_we_int) begin
         mstatus_n = '{
@@ -721,6 +779,14 @@ end else begin //PULP_SECURE == 0
     fflags_n                 = fflags_q;
     frm_n                    = frm_q;
     fprec_n                  = fprec_q;
+
+    vtype_n                  = vtype_q;
+    vl_n                     = vl_q;
+    vstart_n                 = vstart_q;
+    vxsat_n                  = vxsat_q;
+    vxrm_n                   = vxrm_q;
+    vcsr_n                   = vcsr_q;
+
     mscratch_n               = mscratch_q;
     mepc_n                   = mepc_q;
     depc_n                   = depc_q;
@@ -742,6 +808,8 @@ end else begin //PULP_SECURE == 0
 
 
     if (FPU == 1) if (fflags_we_i) fflags_n = fflags_i | fflags_q;
+    if (VPU == 1) if (vtype_we_i) vtype_n   = vtype_i  | vtype_q;
+    if (VPU == 1) if (vtype_we_i) vtype_n   = vtype_i  | vtype_q;
 
     case (csr_addr_i)
       // fcsr: Floating-Point Control and Status Register (frm, fflags, fprec).
@@ -752,6 +820,17 @@ end else begin //PULP_SECURE == 0
          frm_n    = (FPU == 1) ? csr_wdata_int[C_RM+C_FFLAG-1:C_FFLAG] : '0;
       end
       12'h006: if (csr_we_int) fprec_n = (FPU == 1) ? csr_wdata_int[C_PC-1:0]    : '0;
+
+      // VPU
+      CSR_VTYPE:    if (csr_we_int) vtype_n   = (VPU == 1) ? csr_wdata_int[W_VTYPE-1:0]   : '0;
+      CSR_VL:       if (csr_we_int) vl_n      = (VPU == 1) ? csr_wdata_int[W_VL-1:0]      : '0;
+      CSR_VSTART:   if (csr_we_int) vstart_n  = (VPU == 1) ? csr_wdata_int[W_VSTART-1:0]  : '0;
+      CSR_VXRM:     if (csr_we_int) vxrm_n    = (VPU == 1) ? csr_wdata_int[W_VXRM-1:0]    : '0;
+      CSR_VXSAT:    if (csr_we_int) vxsat_n   = (VPU == 1) ? csr_wdata_int[W_VXSAT-1:0]   : '0;
+      CSR_VCSR:     if (csr_we_int) begin
+        vxsat_n   = (VPU == 1) ? csr_wdata_int[W_VXSAT-1:0]             : '0;
+        vxrm_n    = (VPU == 1) ? csr_wdata_int[W_VXRM+W_VXRM-1:W_VXSAT] : '0;
+      end
 
       // mstatus: IE bit
       12'h300: if (csr_we_int) begin
@@ -994,6 +1073,14 @@ end //PULP_SECURE
         fflags_q       <= '0;
         fprec_q        <= '0;
       end
+
+      vtype_q    <= '0;
+      vl_q       <= '0;
+      vstart_q   <= '0;
+      vxsat_q    <= '0;
+      vxrm_q     <= '0;
+      vcsr_q     <= '0;
+
       mstatus_q  <= '{
               uie:  1'b0,
               mie:  1'b0,
@@ -1020,6 +1107,23 @@ end //PULP_SECURE
         fflags_q   <= fflags_n;
         fprec_q    <= fprec_n;
       end
+
+      if(VPU == 1) begin
+        vtype_q    <= vtype_n;
+        vl_q       <= vl_n;
+        vstart_q   <= vstart_n;
+        vxsat_q    <= vxsat_n;
+        vxrm_q     <= vxrm_n;
+        vcsr_q     <= vcsr_n;
+      end else begin
+        vtype_q    <= '0;
+        vl_q       <= '0;
+        vstart_q   <= '0;
+        vxsat_q    <= '0;
+        vxrm_q     <= '0;
+        vcsr_q     <= '0;
+      end
+
       if (PULP_SECURE == 1) begin
         mstatus_q      <= mstatus_n ;
       end else begin

@@ -128,7 +128,7 @@ module riscv_core
 
   localparam N_HWLP      = 2;
   localparam N_HWLP_BITS = $clog2(N_HWLP);
-  localparam APU         = ((SHARED_DSP_MULT==1) | (SHARED_INT_DIV==1) | (FPU==1) | (VPU==1) ? 1 : 0;
+  localparam APU         = ((SHARED_DSP_MULT==1) | (SHARED_INT_DIV==1) | (FPU==1) | (VPU==1)) ? 1 : 0;
 
   // IF/ID signals
   logic              is_hwlp_id;
@@ -199,6 +199,11 @@ module riscv_core
   logic        mult_is_clpx_ex_o;
   logic [ 1:0] mult_clpx_shift_ex;
   logic        mult_clpx_img_ex;
+
+  // VPU
+  logic [31:0]                comp_vcsr;
+  logic [W_VTYPE-1:0]         vtype;
+  logic                       vtype_we;
 
   // FPU
   logic [C_PC-1:0]            fprec_csr;
@@ -439,6 +444,7 @@ module riscv_core
   // main clock gate of the core
   // generates all clocks except the one for the debug unit which is
   // independent
+  `ifndef  PULP_FPGA_EMUL
   cluster_clock_gating core_clock_gate_i
   (
     .clk_i     ( clk_i           ),
@@ -446,6 +452,9 @@ module riscv_core
     .test_en_i ( test_en_i       ),
     .clk_o     ( clk             )
   );
+  `else
+  assign clk = clk_i;
+  `endif
 
   //////////////////////////////////////////////////
   //   ___ _____   ____ _____  _    ____ _____    //
@@ -460,7 +469,6 @@ module riscv_core
     .N_HWLP              ( N_HWLP            ),
     .RDATA_WIDTH         ( INSTR_RDATA_WIDTH ),
     .FPU                 ( FPU               ),
-    .VPU                 ( VPU               ),
     .DM_HaltAddress      ( DM_HaltAddress    )
   )
   if_stage_i
@@ -544,6 +552,7 @@ module riscv_core
     .PULP_SECURE                  ( PULP_SECURE          ),
     .APU                          ( APU                  ),
     .FPU                          ( FPU                  ),
+    .VPU                          ( VPU                  ),
     .Zfinx                        ( Zfinx                ),
     .FP_DIVSQRT                   ( FP_DIVSQRT           ),
     .SHARED_FP                    ( SHARED_FP            ),
@@ -811,6 +820,11 @@ module riscv_core
     .fpu_fflags_o               ( fflags                       ),
     .fpu_fflags_we_o            ( fflags_we                    ),
 
+    // VPU
+    .comp_vcsr_i                ( comp_vcsr                    ),
+    .vtype_o                    ( vtype                        ),
+    .vtype_we_o                 ( vtype_we                     ),
+
     // APU
     .apu_en_i                   ( apu_en_ex                    ),
     .apu_op_i                   ( apu_op_ex                    ),
@@ -979,6 +993,11 @@ module riscv_core
     .fprec_o                 ( fprec_csr          ),
     .fflags_i                ( fflags_csr         ),
     .fflags_we_i             ( fflags_we          ),
+
+    // VPU
+    .comp_vcsr_o             ( comp_vcsr          ),
+    .vtype_i                 ( vtype              ),
+    .vtype_we_i              ( vtype_we           ),
 
     // Interrupt related control signals
     .m_irq_enable_o          ( m_irq_enable       ),

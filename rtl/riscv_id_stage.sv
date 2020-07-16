@@ -44,6 +44,7 @@ module riscv_id_stage
   parameter PULP_SECURE       =  0,
   parameter APU               =  0,
   parameter FPU               =  0,
+  parameter VPU               =  0,
   parameter Zfinx             =  0,
   parameter FP_DIVSQRT        =  0,
   parameter SHARED_FP         =  0,
