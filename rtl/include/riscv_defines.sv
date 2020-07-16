@@ -455,13 +455,13 @@ parameter CSR_DSCRATCH0      = 12'h7b2; // optional
 parameter CSR_DSCRATCH1      = 12'h7b3; // optional
 
   // VPU
-parameter CSR_VLENB     = '0;
-parameter CSR_VTYPE     = '0;
-parameter CSR_VL        = '0;
-parameter CSR_VSTART    = '0;
-parameter CSR_VXSAT     = '0;
-parameter CSR_VXRM      = '0;
-parameter CSR_VCSR      = '0;
+parameter CSR_VLENB     = 'h008;
+parameter CSR_VTYPE     = 'h009;
+parameter CSR_VL        = 'h00A;
+parameter CSR_VSTART    = 'h00F;
+parameter CSR_VXSAT     = 'hc20;
+parameter CSR_VXRM      = 'hc21;
+parameter CSR_VCSR      = 'hc22;
 
 ///////////////////////////////////////////////////////////
 // __   _____ _   _   __  __                _            //
