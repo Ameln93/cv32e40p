@@ -199,6 +199,24 @@ module riscv_ex_stage
   logic           apu_ready;
   logic           apu_gnt;
 
+  logic [2:0][5:0] apu_read_regs;
+  logic [2:0]      apu_read_regs_valid;
+
+  always_comb begin
+    if (VPU == 1) begin
+      apu_read_regs[0]    = apu_read_regs_i[0];
+      apu_read_regs[1]    = apu_read_regs_i[1];
+      apu_read_regs[2]    = comp_vcsr_i;
+
+      apu_read_regs_valid[0] = apu_read_regs_valid_i[0];
+      apu_read_regs_valid[1] = apu_read_regs_valid_i[1];
+      apu_read_regs_valid[2] = '1;
+    end else begin
+      apu_read_regs       = apu_read_regs_i;
+      apu_read_regs_valid = apu_read_regs_valid_i;
+    end
+  end
+
   // ALU write port mux
   always_comb
   begin
@@ -253,7 +271,6 @@ module riscv_ex_stage
   // branch handling
   assign branch_decision_o = alu_cmp_result;
   assign jump_target_o     = alu_operand_c_i;
-
 
   ////////////////////////////
   //     _    _    _   _    //
@@ -367,8 +384,8 @@ module riscv_ex_stage
          .active_o           ( apu_active                     ),
          .stall_o            ( apu_stall                      ),
 
-         .read_regs_i        ( apu_read_regs_i                ),
-         .read_regs_valid_i  ( apu_read_regs_valid_i          ),
+         .read_regs_i        ( apu_read_regs                  ),
+         .read_regs_valid_i  ( apu_read_regs_valid            ),
          .read_dep_o         ( apu_read_dep_o                 ),
          .write_regs_i       ( apu_write_regs_i               ),
          .write_regs_valid_i ( apu_write_regs_valid_i         ),

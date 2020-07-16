@@ -165,6 +165,7 @@ module riscv_decoder
   localparam APUTYPE_MULT       = (SHARED_FP)             ? ((SHARED_FP==1) ? APUTYPE_FP+1 : APUTYPE_FP)   : 0;
   localparam APUTYPE_CAST       = (SHARED_FP)             ? ((SHARED_FP==1) ? APUTYPE_FP+2 : APUTYPE_FP)   : 0;
   localparam APUTYPE_MAC        = (SHARED_FP)             ? ((SHARED_FP==1) ? APUTYPE_FP+3 : APUTYPE_FP)   : 0;
+  localparam APUTYPE_V          = (VPU)                   ? 0 : 0;
   // SHARED_FP_DIVSQRT is without effect unless FP_DIVSQRT is set.
   // SHARED_FP_DIVSQRT==1, SHARED_FP==1 (old config): separate div and sqrt units
   // SHARED_FP_DIVSQRT==1, SHARED_FP==2 (new config): divsqrt enabled within shared FPnew blocks
@@ -1901,8 +1902,20 @@ module riscv_decoder
             data_we_o      = 1'b0;
           end
         end
-        // FPU!=1
-        else
+        // VPU && !FPU
+        else if (VPU == 1) begin
+          data_req            = 1'b0;
+          data_we_o           = 1'b0;
+          rega_used_o         = 1'b1;
+          regb_used_o         = 1'b0;
+          alu_operator_o      = ALU_ADD;
+          reg_fp_b_o          = 1'b0;
+          instr_multicycle_o  = 1'b0;
+          unique case (instr_rdata_i[14:12])
+            3'b110:  illegal_insn_o  = '0;
+            default: illegal_insn_o  = '1;
+          endcase
+        end else
           illegal_insn_o = 1'b1;
       end
 
@@ -1940,7 +1953,19 @@ module riscv_decoder
           endcase
         end
         // FPU!=1
-        else
+        else if (VPU == 1) begin
+          data_req            = 1'b0;
+          regfile_mem_we      = 1'b0;
+          reg_fp_d_o          = 1'b0;
+          rega_used_o         = 1'b0;
+          alu_operator_o      = ALU_ADD;
+          instr_multicycle_o  = 1'b0;
+
+          unique case (instr_rdata_i[14:12])
+            3'b110:  illegal_insn_o  = '0;
+            default: illegal_insn_o  = '1;
+          endcase
+        end else
           illegal_insn_o = 1'b1;
       end
 
@@ -2036,6 +2061,44 @@ module riscv_decoder
           end
         endcase
       end
+
+
+      // _   _______ _   _
+      // | | | | ___ \ | | |
+      // | | | | |_/ / | | |
+      // | | | |  __/| | | |
+      // \ \_/ / |   | |_| |
+      //  \___/\_|    \___/
+      //
+      // Vector instruction are encoded in VPU
+      OPCODE_OP_V: begin
+        if (VPU == 1) begin
+              apu_en           = 1'b1;
+              alu_en_o         = 1'b0;
+
+              apu_flags_src_o  = APU_FLAGS_VEC;
+              apu_type_o       = APUTYPE_V;
+
+              // currently VPU supports only instruction without
+              // using general purpose registers as source or destination
+              // so latendy is one cycle to detect invalid insn
+              apu_lat_o        = 2'h0;
+              // no registers used shoud be default
+              rega_used_o      = 1'b0;
+              regb_used_o      = 1'b0;
+              regc_used_o      = 1'b0;
+              reg_fp_a_o       = 1'b0;
+              reg_fp_b_o       = 1'b0;
+              reg_fp_c_o       = 1'b0;
+              reg_fp_d_o       = 1'b0;
+
+              // VPU!=1
+        end else begin
+          illegal_insn_o = 1'b1;
+        end
+      end
+
+
 
       /*
       // Comment out, while it uses the same opcode like the official Vector extension

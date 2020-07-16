@@ -244,6 +244,9 @@ parameter OP_A_CURRPC      = 3'b001;
 parameter OP_A_IMM         = 3'b010;
 parameter OP_A_REGB_OR_FWD = 3'b011;
 parameter OP_A_REGC_OR_FWD = 3'b100;
+parameter OP_V_ADDR        = 3'b101;
+parameter OP_V_CSR         = 3'b110;
+parameter OP_V_INSN        = 3'b111;
 
 // immediate a selection
 parameter IMMA_Z      = 1'b0;

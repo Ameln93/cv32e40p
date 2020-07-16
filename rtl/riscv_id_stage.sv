@@ -873,6 +873,11 @@ module riscv_id_stage
              apu_read_regs[0]        = regfile_addr_rb_id;
              apu_read_regs_valid[0]  = 1'b1;
           end
+          // VPU
+          OP_V_INSN: begin
+            apu_read_regs[0]        = instr_rdata_i;
+            apu_read_regs_valid[0]  = 1'b1;
+          end
           default: begin
              apu_read_regs[0]        = regfile_addr_ra_id;
              apu_read_regs_valid [0] = 1'b0;
@@ -894,6 +899,11 @@ module riscv_id_stage
              apu_read_regs[1]       = regfile_addr_rc_id;
              apu_read_regs_valid[1] = 1'b1;
           end
+          //VPU
+          OP_V_ADDR: begin
+             apu_read_regs[1]       = regfile_addr_ra_id;
+             apu_read_regs_valid[1] = 1'b1;
+          end
           default: begin
              apu_read_regs[1]        = regfile_addr_rb_id;
              apu_read_regs_valid [1] = 1'b0;
@@ -911,6 +921,11 @@ module riscv_id_stage
              apu_read_regs[2]       = regfile_addr_rc_id;
              apu_read_regs_valid[2] = 1'b1;
           end
+          // VPU case equal to default
+          // OP_V_CSR: begin
+          //  apu_read_regs[1]        = '0;
+          //  apu_read_regs_valid [1] = 1'b0;
+          //end
           default: begin
              apu_read_regs[2]        = regfile_addr_rc_id;
              apu_read_regs_valid [2] = 1'b0;
