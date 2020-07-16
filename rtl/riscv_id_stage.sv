@@ -854,6 +854,8 @@ module riscv_id_stage
               apu_flags = {fpu_int_fmt, fpu_src_fmt, fpu_dst_fmt, fp_rnd_mode};
             else
               apu_flags = '0;
+          APU_FLAGS_VEC:
+              apu_flags = '0;
           default:
             apu_flags = '0;
         endcase
@@ -1023,6 +1025,7 @@ module riscv_id_stage
   riscv_decoder
     #(
       .FPU                 ( FPU                  ),
+      .VPU                 ( VPU                  ),
       .FP_DIVSQRT          ( FP_DIVSQRT           ),
       .PULP_SECURE         ( PULP_SECURE          ),
       .SHARED_FP           ( SHARED_FP            ),

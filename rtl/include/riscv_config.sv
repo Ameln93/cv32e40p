@@ -21,6 +21,8 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
+`define PULP_FPGA_EMUL
+
 // no traces for synthesis, they are not synthesizable
 `ifndef VERILATOR
 `ifndef SYNTHESIS

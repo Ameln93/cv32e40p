@@ -34,6 +34,9 @@ package apu_core_package;
    // until here                                                              //
    /////////////////////////////////////////////////////////////////////////////
 
+   // VPU
+   parameter APU_FLAGS_VEC   = 4;
+
    // FP-general
    parameter APU_FLAGS_FP    = 2;
    parameter APU_FLAGS_FPNEW = 3;

@@ -32,6 +32,7 @@ import riscv_defines::*;
 module riscv_decoder
 #(
   parameter FPU               = 0,
+  parameter VPU               = 0,
   parameter FP_DIVSQRT        = 0,
   parameter PULP_SECURE       = 0,
   parameter SHARED_FP         = 0,

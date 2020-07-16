@@ -40,6 +40,7 @@ import riscv_defines::*;
 module riscv_ex_stage
 #(
   parameter FPU              =  0,
+  parameter VPU              =  0,
   parameter FP_DIVSQRT       =  0,
   parameter SHARED_FP        =  0,
   parameter SHARED_DSP_MULT  =  0,
@@ -335,7 +336,7 @@ module riscv_ex_stage
   );
 
    generate
-      if (FPU == 1) begin
+      if (FPU == 1 || VPU == 1) begin
          ////////////////////////////////////////////////////
          //     _    ____  _   _   ____ ___ ____  ____     //
          //    / \  |  _ \| | | | |  _ \_ _/ ___||  _ \    //

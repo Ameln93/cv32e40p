@@ -41,6 +41,7 @@ module riscv_cs_registers
   parameter N_EXT_CNT     = 0,
   parameter APU           = 0,
   parameter FPU           = 0,
+  parameter VPU           = 0,
   parameter PULP_SECURE   = 0,
   parameter USE_PMP       = 0,
   parameter N_PMP_ENTRIES = 16

@@ -44,6 +44,7 @@ module riscv_core
   parameter USE_PMP             =  1, //if PULP_SECURE is 1, you can still not use the PMP
   parameter PULP_CLUSTER        =  1,
   parameter FPU                 =  0,
+  parameter VPU                 =  0,
   parameter Zfinx               =  0,
   parameter FP_DIVSQRT          =  0,
   parameter SHARED_FP           =  0,
@@ -127,7 +128,7 @@ module riscv_core
 
   localparam N_HWLP      = 2;
   localparam N_HWLP_BITS = $clog2(N_HWLP);
-  localparam APU         = ((SHARED_DSP_MULT==1) | (SHARED_INT_DIV==1) | (FPU==1)) ? 1 : 0;
+  localparam APU         = ((SHARED_DSP_MULT==1) | (SHARED_INT_DIV==1) | (FPU==1) | (VPU==1) ? 1 : 0;
 
   // IF/ID signals
   logic              is_hwlp_id;
@@ -459,6 +460,7 @@ module riscv_core
     .N_HWLP              ( N_HWLP            ),
     .RDATA_WIDTH         ( INSTR_RDATA_WIDTH ),
     .FPU                 ( FPU               ),
+    .VPU                 ( VPU               ),
     .DM_HaltAddress      ( DM_HaltAddress    )
   )
   if_stage_i
@@ -948,6 +950,7 @@ module riscv_core
   #(
     .N_EXT_CNT       ( N_EXT_PERF_COUNTERS   ),
     .FPU             ( FPU                   ),
+    .VPU             ( VPU                   ),
     .APU             ( APU                   ),
     .PULP_SECURE     ( PULP_SECURE           ),
     .USE_PMP         ( USE_PMP               ),
