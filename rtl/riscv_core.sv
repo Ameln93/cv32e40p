@@ -219,7 +219,7 @@ module riscv_core
   logic [APU_NDSFLAGS_CPU-1:0] apu_flags_ex;
   logic [APU_WOP_CPU-1:0]      apu_op_ex;
   logic [1:0]                  apu_lat_ex;
-  logic [APU_NARGS_CPU-1:0][31:0]                 apu_operands_ex;
+  logic [APU_NARGS_CPU-1:0][31:0] apu_operands_ex;
   logic [5:0]                  apu_waddr_ex;
 
   logic [2:0][5:0]             apu_read_regs;

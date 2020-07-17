@@ -1907,6 +1907,17 @@ module riscv_decoder
         // At the moment simple vector stride operation is supported
         else if (VPU == 1) begin
 
+          //VPU performs Store by itself
+          alu_en_o            = 1'b0;
+          data_req            = 1'b0;
+          data_we_o           = 1'b0;
+
+          apu_en              = 1'b1;
+          apu_op_o            = {APU_WOP_CPU{1'b0}};
+          apu_flags_src_o     = '0;
+          apu_type_o          = APUTYPE_V;
+          apu_lat_o           = 2'h2;
+
           alu_op_a_mux_sel_o  = OP_A_VINSN;
           alu_op_b_mux_sel_o  = OP_B_VCSR;
           alu_op_c_mux_sel_o  = OP_C_VADDR;
@@ -1915,10 +1926,6 @@ module riscv_decoder
           regb_used_o         = 1'b0;
           regc_used_o         = 1'b1;
 
-          data_req            = 1'b0;
-          data_we_o           = 1'b0;
-          rega_used_o         = 1'b1;
-          regb_used_o         = 1'b0;
           alu_operator_o      = ALU_ADD;
           reg_fp_b_o          = 1'b0;
           instr_multicycle_o  = 1'b0;
@@ -1968,6 +1975,16 @@ module riscv_decoder
         // At the moment simple vector stride operation is supported
         else if (VPU == 1) begin
 
+          // VPU performs Load
+          alu_en_o            = 1'b0;
+          data_req            = 1'b0;
+
+          apu_en              = 1'b1;
+          apu_op_o            = {APU_WOP_CPU{1'b0}};
+          apu_lat_o           = 2'h2;
+          apu_flags_src_o     = '0;
+          apu_type_o          = APUTYPE_V;
+
           alu_op_a_mux_sel_o  = OP_A_VINSN;
           alu_op_b_mux_sel_o  = OP_B_VCSR;
           alu_op_c_mux_sel_o  = OP_C_VADDR;
@@ -1976,7 +1993,6 @@ module riscv_decoder
           regb_used_o         = 1'b0;
           regc_used_o         = 1'b1;
 
-          data_req            = 1'b0;
           regfile_mem_we      = 1'b0;
           reg_fp_d_o          = 1'b0;
           alu_operator_o      = ALU_ADD;
@@ -2097,12 +2113,14 @@ module riscv_decoder
 
       OPCODE_OP_V: begin
         if (VPU == 1) begin
-              apu_en              = 1'b1;
               alu_en_o            = 1'b0;
+
+              apu_en              = 1'b1;
               apu_op_o            = {APU_WOP_CPU{1'b0}};
-              apu_lat_o           = 2'h0;
+              apu_lat_o           = 2'h2;
               apu_flags_src_o     = APU_FLAGS_VEC;
               apu_type_o          = APUTYPE_V;
+
               // no registers used shoud be default
               rega_used_o         = 1'b0;
               regb_used_o         = 1'b0;

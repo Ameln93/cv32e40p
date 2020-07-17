@@ -42,7 +42,7 @@ VSRC = cluster_clock_gating.sv                   \
        dp_ram.sv                                 \
        ram.sv                                    \
        top.sv                                    \
-       fpnew/src/fpnew_pkg.sv                    \
+       ../../rtl/include/fpnew_pkg.sv            \
        ../../rtl/include/apu_core_package.sv     \
        ../../rtl/include/riscv_defines.sv        \
        ../../rtl/include/riscv_tracer_defines.sv \
@@ -109,11 +109,6 @@ $(VMK): $(VSRC)
 		  --top-module top \
 	          --Mdir $(VDIR) --trace -DPULP_FPGA_EMUL -cc \
 	          +incdir+$(VINC) $(VSRC) $(SRC) --exe
-
-# fpnew dependencies
-fpnew/src/fpnew_pkg.sv:
-	git clone https://github.com/pulp-platform/fpnew --recurse
-
 
 .PHONY: clean
 clean:

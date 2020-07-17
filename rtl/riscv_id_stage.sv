@@ -362,7 +362,7 @@ module riscv_id_stage
   logic [WAPUTYPE-1:0]         apu_type;
   logic [APU_WOP_CPU-1:0]      apu_op;
   logic [1:0]                  apu_lat;
-  logic [APU_NARGS_CPU-1:0][31:0]                 apu_operands;
+  logic [APU_NARGS_CPU-1:0][31:0] apu_operands;
   logic [APU_NDSFLAGS_CPU-1:0] apu_flags;
   logic [5:0]                  apu_waddr;
 
@@ -697,7 +697,7 @@ module riscv_id_stage
       OP_B_REGC_OR_FWD:  operand_b = operand_c_fw_id;
       OP_B_IMM:          operand_b = imm_b;
       OP_B_BMASK:        operand_b = $unsigned(operand_b_fw_id[4:0]);
-      OP_B_VCSR:        operand_b = 0; // later set by ex_stage
+      OP_B_VCSR:         operand_b = 32'b0; // CSR later set by ex_stage
       default:           operand_b = operand_b_fw_id;
     endcase // case (alu_op_b_mux_sel)
   end
