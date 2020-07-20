@@ -89,7 +89,7 @@ module riscv_decoder
   output logic [ALU_OP_WIDTH-1:0] alu_operator_o, // ALU operation selection
   output logic [2:0]  alu_op_a_mux_sel_o,      // operand a selection: reg value, PC, immediate or zero
   output logic [2:0]  alu_op_b_mux_sel_o,      // operand b selection: reg value or immediate
-  output logic [1:0]  alu_op_c_mux_sel_o,      // operand c selection: reg value or jump target
+  output logic [2:0]  alu_op_c_mux_sel_o,      // operand c selection: reg value or jump target
   output logic [1:0]  alu_vec_mode_o,          // selects between 32 bit, 16 bit and 8 bit vectorial modes
   output logic        scalar_replication_o,    // scalar replication enable
   output logic        scalar_replication_c_o,  // scalar replication enable for operand C
@@ -130,7 +130,8 @@ module riscv_decoder
   output logic        regfile_alu_waddr_sel_o, // Select register write address for ALU/MUL operations
 
   // CSR manipulation
-  output logic        csr_access_o,            // access to CSR
+  output logic        csr_access_a_o,          // access to CSR
+  output logic        csr_access_b_o,          // access to CSR
   output logic        csr_status_o,            // access to xstatus CSR
   output logic [1:0]  csr_op_o,                // operation to perform on CSR
   input  PrivLvl_t    current_priv_lvl_i,      // The current privilege level
@@ -165,7 +166,6 @@ module riscv_decoder
   localparam APUTYPE_MULT       = (SHARED_FP)             ? ((SHARED_FP==1) ? APUTYPE_FP+1 : APUTYPE_FP)   : 0;
   localparam APUTYPE_CAST       = (SHARED_FP)             ? ((SHARED_FP==1) ? APUTYPE_FP+2 : APUTYPE_FP)   : 0;
   localparam APUTYPE_MAC        = (SHARED_FP)             ? ((SHARED_FP==1) ? APUTYPE_FP+3 : APUTYPE_FP)   : 0;
-  localparam APUTYPE_V          = (VPU)                   ? 0 : 0;
   // SHARED_FP_DIVSQRT is without effect unless FP_DIVSQRT is set.
   // SHARED_FP_DIVSQRT==1, SHARED_FP==1 (old config): separate div and sqrt units
   // SHARED_FP_DIVSQRT==1, SHARED_FP==2 (new config): divsqrt enabled within shared FPnew blocks
@@ -175,6 +175,8 @@ module riscv_decoder
                                  ((SHARED_FP_DIVSQRT==2)  ? ((SHARED_FP==1) ? APUTYPE_FP+4 : APUTYPE_FP+1) : 0);
   localparam APUTYPE_SQRT       = (SHARED_FP_DIVSQRT==1)  ? ((SHARED_FP==1) ? APUTYPE_FP+5 : APUTYPE_FP)   :
                                  ((SHARED_FP_DIVSQRT==2)  ? ((SHARED_FP==1) ? APUTYPE_FP+4 : APUTYPE_FP+1) : 0);
+
+  localparam APUTYPE_V          = (VPU)                   ?  5'b10000: '0;
 
   // write enable/request control
   logic       regfile_mem_we;
@@ -260,7 +262,8 @@ module riscv_decoder
     hwloop_start_mux_sel_o      = 1'b0;
     hwloop_cnt_mux_sel_o        = 1'b0;
 
-    csr_access_o                = 1'b0;
+    csr_access_a_o              = 1'b0;
+    csr_access_b_o              = 1'b0;
     csr_status_o                = 1'b0;
     csr_illegal                 = 1'b0;
     csr_op                      = CSR_OP_NONE;
@@ -1904,7 +1907,7 @@ module riscv_decoder
         end
         // VPU && !FPU
         // VPU uses STORE-FP for vector store operations
-        // At the moment simple vector stride operation is supported
+        // At the moment only one simple vector stride operations is supported
         else if (VPU == 1) begin
 
           //VPU performs Store by itself
@@ -1913,10 +1916,10 @@ module riscv_decoder
           data_we_o           = 1'b0;
 
           apu_en              = 1'b1;
-          apu_op_o            = {APU_WOP_CPU{1'b0}};
+          apu_op_o            = {APU_WOP_CPU{1'b0}}; // not used so far
           apu_flags_src_o     = '0;
           apu_type_o          = APUTYPE_V;
-          apu_lat_o           = 2'h2;
+          apu_lat_o           = 2'h3; // multicycle
 
           alu_op_a_mux_sel_o  = OP_A_VINSN;
           alu_op_b_mux_sel_o  = OP_B_VCSR;
@@ -1927,14 +1930,16 @@ module riscv_decoder
           regc_used_o         = 1'b1;
 
           alu_operator_o      = ALU_ADD;
-          reg_fp_b_o          = 1'b0;
-          instr_multicycle_o  = 1'b0;
+          instr_multicycle_o  = 1'b1;
+
           unique case (instr_rdata_i[14:12])
-            3'b110:  illegal_insn_o  = '0;
+            3'b110:  illegal_insn_o  = '0; // only support simple stride
             default: illegal_insn_o  = '1;
           endcase
-        end else
+
+        end else begin
           illegal_insn_o = 1'b1;
+        end
       end
 
       OPCODE_LOAD_FP: begin
@@ -2002,8 +2007,10 @@ module riscv_decoder
             3'b110:  illegal_insn_o  = '0;
             default: illegal_insn_o  = '1;
           endcase
-        end else
+
+        end else begin
           illegal_insn_o = 1'b1;
+        end
       end
 
       OPCODE_PULP_OP: begin  // PULP specific ALU instructions with three source operands
@@ -2107,32 +2114,49 @@ module riscv_decoder
       //  \___/\_|    \___/
       //
       // Vector instruction are decoded in VPU
-      // Currently VPU supports only instruction without
-      // using general purpose registers as source or destination
+      // Currently VPU supports only instruction without using general purpose registers as source or destination
       // so latendy is one cycle to detect invalid insn
-
+      // vsetvl is handled in CPU
       OPCODE_OP_V: begin
         if (VPU == 1) begin
-              alu_en_o            = 1'b0;
 
-              apu_en              = 1'b1;
-              apu_op_o            = {APU_WOP_CPU{1'b0}};
-              apu_lat_o           = 2'h2;
-              apu_flags_src_o     = APU_FLAGS_VEC;
-              apu_type_o          = APUTYPE_V;
+          alu_en_o            = 1'b0;
 
-              // no registers used shoud be default
-              rega_used_o         = 1'b0;
-              regb_used_o         = 1'b0;
-              regc_used_o         = 1'b0;
-              reg_fp_a_o          = 1'b0;
-              reg_fp_b_o          = 1'b0;
-              reg_fp_c_o          = 1'b0;
-              reg_fp_d_o          = 1'b0;
+          if (instr_rdata_i[14:12] == 3'b1) begin
 
-              alu_op_a_mux_sel_o  = OP_A_VINSN;
-              alu_op_b_mux_sel_o  = OP_B_VCSR;
-              alu_op_c_mux_sel_o  = OP_C_VADDR;
+            //vsetvl instruction
+            // when rs1 == rd == 0 -> new avl is old vl
+            csr_access_a_o      = (instr_rdata_i[19:15] == '0 && instr_rdata_i[11:7] == '0) ? 1'b0 : 1'b1;
+            csr_access_b_o      = 1'b1;
+            regfile_alu_we      = 1'b1;
+            instr_multicycle_o  = 1'b1;
+            csr_op              = CSR_OP_WRITE;
+
+            // reg a (rs1) is only used if it is not zero and then it holds vl
+            rega_used_o         = |(instr_rdata_i[19:15]);
+            // regc is used to hold vytpe
+            regc_used_o         = instr_rdata_i[31];
+
+            // rs1 == 0 && rd != 0 -> set vl to vmax
+            alu_op_a_mux_sel_o  = (instr_rdata_i[19:15] == '0 && instr_rdata_i[11:7] != '0) ? OP_A_REGA_OR_FWD : OP_A_VLMAX;
+            // op b holds the csr addresses for vtypte and vl
+            alu_op_b_mux_sel_o  = OP_B_VSETVL;
+            // decide wheter vtype is taken from rs2 or immediate
+            alu_op_c_mux_sel_o  = (instr_rdata_i[31] == '1) ? OP_A_REGC_OR_FWD : OP_C_IMM;
+
+          end else begin
+
+            // regular vector instruction
+            apu_en              = 1'b1;
+            apu_op_o            = {APU_WOP_CPU{1'b0}};
+            apu_lat_o           = 2'h2;
+            apu_flags_src_o     = APU_FLAGS_VEC;
+            apu_type_o          = APUTYPE_V;
+
+            alu_op_a_mux_sel_o  = OP_A_VINSN;
+            alu_op_b_mux_sel_o  = OP_B_VCSR;
+            alu_op_c_mux_sel_o  = OP_C_VADDR;
+          end
 
         // VPU!=1
         end else begin
@@ -2432,10 +2456,10 @@ module riscv_decoder
         else
         begin
           // instruction to read/modify CSR
-          csr_access_o        = 1'b1;
+          csr_access_a_o      = 1'b1;
           regfile_alu_we      = 1'b1;
           alu_op_b_mux_sel_o  = OP_B_IMM;
-          imm_a_mux_sel_o     = IMMA_Z;
+          imm_a_mux_sel_o     = IMMA_ZERO;
           imm_b_mux_sel_o     = IMMB_I;    // CSR address is encoded in I imm
           instr_multicycle_o  = 1'b1;
 

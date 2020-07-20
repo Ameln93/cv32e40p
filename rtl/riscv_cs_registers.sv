@@ -42,6 +42,7 @@ module riscv_cs_registers
   parameter APU           = 0,
   parameter FPU           = 0,
   parameter VPU           = 0,
+  parameter VLEN          = 128,
   parameter PULP_SECURE   = 0,
   parameter USE_PMP       = 0,
   parameter N_PMP_ENTRIES = 16
@@ -61,11 +62,17 @@ module riscv_cs_registers
   input  logic [30:0]     boot_addr_i,
 
   // Interface to registers (SRAM like)
-  input  logic            csr_access_i,
-  input  logic [11:0]     csr_addr_i,
-  input  logic [31:0]     csr_wdata_i,
-  input  logic  [1:0]     csr_op_i,
-  output logic [31:0]     csr_rdata_o,
+  // second write port necessary for vsetvl
+  input  logic        csr_access_a_i,
+  input  logic [11:0] csr_addr_a_i,
+  input  logic [31:0] csr_wdata_a_i,
+
+  input  logic        csr_access_b_i,
+  input  logic [11:0] csr_addr_b_i,
+  input  logic [31:0] csr_wdata_b_i,
+
+  input  logic [1:0]  csr_op_i,
+  output logic [31:0]  csr_rdata_o,
 
   output logic [2:0]         frm_o,
   output logic [C_PC-1:0]    fprec_o,
@@ -164,7 +171,6 @@ module riscv_cs_registers
   localparam N_PMP_CFG         = N_PMP_ENTRIES % 4 == 0 ? N_PMP_ENTRIES/4 : N_PMP_ENTRIES/4 + 1;
 
   // VPU constant
-  localparam VLEN  = 128;
   localparam VLENB = VLEN/8;
 
 `ifdef ASIC_SYNTHESIS
@@ -260,7 +266,7 @@ module riscv_cs_registers
 
   // VPU
   logic [W_VTYPE-1:0]   vtype_q, vtype_n;
-  logic [W_VL-1:0]      vl_q, vl_n;
+  logic [W_VL-1:0]      vl_q, vl_n, vlmax;
   logic [W_VSTART-1:0]  vstart_q, vstart_n;
   logic [W_VXSAT-1:0]   vxsat_q, vxsat_n;
   logic [W_VXRM-1:0]    vxrm_q, vxrm_n;
@@ -326,7 +332,7 @@ if(PULP_SECURE==1) begin
   // read logic
   always_comb
   begin
-    case (csr_addr_i)
+    case (csr_addr_a_i)
       // fcsr: Floating-Point Control and Status Register (frm + fflags).
       12'h001: csr_rdata_int = (FPU == 1) ? {27'b0, fflags_q}        : '0;
       12'h002: csr_rdata_int = (FPU == 1) ? {29'b0, frm_q}           : '0;
@@ -393,7 +399,7 @@ if(PULP_SECURE==1) begin
       12'h3A2: csr_rdata_int = USE_PMP ? pmp_reg_q.pmpcfg_packed[2] : '0;
       12'h3A3: csr_rdata_int = USE_PMP ? pmp_reg_q.pmpcfg_packed[3] : '0;
 
-      12'h3Bx: csr_rdata_int = USE_PMP ? pmp_reg_q.pmpaddr[csr_addr_i[3:0]] : '0;
+      12'h3Bx: csr_rdata_int = USE_PMP ? pmp_reg_q.pmpaddr[csr_addr_a_i[3:0]] : '0;
 
       /* USER CSR */
       // ustatus
@@ -422,14 +428,14 @@ end else begin //PULP_SECURE == 0
   always_comb
   begin
 
-    case (csr_addr_i)
+    case (csr_addr_a_i)
       // fcsr: Floating-Point Control and Status Register (frm + fflags).
       12'h001: csr_rdata_int = (FPU == 1) ? {27'b0, fflags_q}        : '0;
       12'h002: csr_rdata_int = (FPU == 1) ? {29'b0, frm_q}           : '0;
       12'h003: csr_rdata_int = (FPU == 1) ? {24'b0, frm_q, fflags_q} : '0;
       12'h006: csr_rdata_int = (FPU == 1) ? {27'b0, fprec_q}         : '0; // Optional precision control for FP DIV/SQRT Unit
 
-      +      // VPU CSRs
+      // VPU CSRs
       CSR_VLENB:  csr_rdata_int = (VPU == 1) ? VLENB    : '0;
       CSR_VTYPE:  csr_rdata_int = (VPU == 1) ? vtype_q  : '0;
       CSR_VL:     csr_rdata_int = (VPU == 1) ? vl_q     : '0;
@@ -531,7 +537,7 @@ if(PULP_SECURE==1) begin
 
     if (FPU == 1) if (fflags_we_i) fflags_n = fflags_i | fflags_q;
 
-    casex (csr_addr_i)
+    casex (csr_addr_a_i)
 
       // fcsr: Floating-Point Control and Status Register (frm, fflags, fprec).
       12'h001: if (csr_we_int) fflags_n = (FPU == 1) ? csr_wdata_int[C_FFLAG-1:0] : '0;
@@ -543,8 +549,6 @@ if(PULP_SECURE==1) begin
       12'h006: if (csr_we_int) fprec_n = (FPU == 1) ? csr_wdata_int[C_PC-1:0]    : '0;
 
       // VPU
-      CSR_VTYPE:    if (csr_we_int) vtype_n   = (VPU == 1) ? csr_wdata_int[W_VTYPE-1:0]   : '0;
-      CSR_VL:       if (csr_we_int) vl_n      = (VPU == 1) ? csr_wdata_int[W_VL-1:0]      : '0;
       CSR_VSTART:   if (csr_we_int) vstart_n  = (VPU == 1) ? csr_wdata_int[W_VSTART-1:0]  : '0;
       CSR_VXRM:     if (csr_we_int) vxrm_n    = (VPU == 1) ? csr_wdata_int[W_VXRM-1:0]    : '0;
       CSR_VXSAT:    if (csr_we_int) vxsat_n   = (VPU == 1) ? csr_wdata_int[W_VXSAT-1:0]   : '0;
@@ -625,7 +629,7 @@ if(PULP_SECURE==1) begin
       12'h3A2: if (csr_we_int) begin pmp_reg_n.pmpcfg_packed[2] = csr_wdata_int; pmpcfg_we[11:8]  = 4'b1111; end
       12'h3A3: if (csr_we_int) begin pmp_reg_n.pmpcfg_packed[3] = csr_wdata_int; pmpcfg_we[15:12] = 4'b1111; end
 
-      12'h3BX: if (csr_we_int) begin pmp_reg_n.pmpaddr[csr_addr_i[3:0]]   = csr_wdata_int; pmpaddr_we[csr_addr_i[3:0]] = 1'b1;  end
+      12'h3BX: if (csr_we_int) begin pmp_reg_n.pmpaddr[csr_addr_a_i[3:0]]   = csr_wdata_int; pmpaddr_we[csr_addr_a_i[3:0]] = 1'b1;  end
 
 
       /* USER CSR */
@@ -808,10 +812,8 @@ end else begin //PULP_SECURE == 0
 
 
     if (FPU == 1) if (fflags_we_i) fflags_n = fflags_i | fflags_q;
-    if (VPU == 1) if (vtype_we_i) vtype_n   = vtype_i  | vtype_q;
-    if (VPU == 1) if (vtype_we_i) vtype_n   = vtype_i  | vtype_q;
 
-    case (csr_addr_i)
+    case (csr_addr_a_i)
       // fcsr: Floating-Point Control and Status Register (frm, fflags, fprec).
       12'h001: if (csr_we_int) fflags_n = (FPU == 1) ? csr_wdata_int[C_FFLAG-1:0] : '0;
       12'h002: if (csr_we_int) frm_n    = (FPU == 1) ? csr_wdata_int[C_RM-1:0]    : '0;
@@ -822,8 +824,6 @@ end else begin //PULP_SECURE == 0
       12'h006: if (csr_we_int) fprec_n = (FPU == 1) ? csr_wdata_int[C_PC-1:0]    : '0;
 
       // VPU
-      CSR_VTYPE:    if (csr_we_int) vtype_n   = (VPU == 1) ? csr_wdata_int[W_VTYPE-1:0]   : '0;
-      CSR_VL:       if (csr_we_int) vl_n      = (VPU == 1) ? csr_wdata_int[W_VL-1:0]      : '0;
       CSR_VSTART:   if (csr_we_int) vstart_n  = (VPU == 1) ? csr_wdata_int[W_VSTART-1:0]  : '0;
       CSR_VXRM:     if (csr_we_int) vxrm_n    = (VPU == 1) ? csr_wdata_int[W_VXRM-1:0]    : '0;
       CSR_VXSAT:    if (csr_we_int) vxsat_n   = (VPU == 1) ? csr_wdata_int[W_VXSAT-1:0]   : '0;
@@ -946,23 +946,21 @@ end //PULP_SECURE
   // CSR operation logic
   always_comb
   begin
-    csr_wdata_int = csr_wdata_i;
+    csr_wdata_int = csr_wdata_a_i;
     csr_we_int    = 1'b1;
 
     unique case (csr_op_i)
-      CSR_OP_WRITE: csr_wdata_int = csr_wdata_i;
-      CSR_OP_SET:   csr_wdata_int = csr_wdata_i | csr_rdata_o;
-      CSR_OP_CLEAR: csr_wdata_int = (~csr_wdata_i) & csr_rdata_o;
+      CSR_OP_WRITE:   csr_wdata_int = csr_wdata_a_i;
+      CSR_OP_SET:     csr_wdata_int = csr_wdata_a_i | csr_rdata_o;
+      CSR_OP_CLEAR:   csr_wdata_int = (~csr_wdata_a_i) & csr_rdata_o;
 
-      CSR_OP_NONE: begin
-        csr_wdata_int = csr_wdata_i;
+      default: begin
+        csr_wdata_int = csr_wdata_a_i;
         csr_we_int    = 1'b0;
       end
 
-      default:;
     endcase
   end
-
 
   // output mux
   always_comb
@@ -972,6 +970,74 @@ end //PULP_SECURE
     // performance counters
     if (is_pccr || is_pcer || is_pcmr)
       csr_rdata_o = perf_rdata;
+
+    // vsetvl forward the new vl to the ex stage
+    if (VPU ==1) begin
+      if (csr_access_a_i == '1 && csr_addr_a_i == CSR_VL) begin
+        csr_rdata_o = vl_n;
+      end
+    end
+
+  end
+
+////////////////////////////////////////////
+//   _   _ _____ _____ _____ _   _ _      //
+//  | | | /  ___|  ___|_   _| | | | |     //
+//  | | | \ `--.| |__   | | | | | | |     //
+//  | | | |`--. \  __|  | | | | | | |     //
+//  \ \_/ /\__/ / |___  | | \ \_/ / |____ //
+//   \___/\____/\____/  \_/  \___/\_____/ //
+//                                        //
+////////////////////////////////////////////
+
+  // 1. update vtype CSR and check for valid setup
+  always_comb begin
+
+    vtype_n = vtype_q;
+
+    if (VPU == 1) begin
+
+      // Possible Bug when CSR is written by vsetvl and APU's vtype_i
+      if (vtype_we_i) begin
+        vtype_n   = vtype_i  | vtype_q;
+      end
+
+      if (csr_access_b_i == '1 && csr_addr_b_i == CSR_VTYPE) begin
+
+        // If SEW > 32 or LMUL != 1 or vta == 1 or vma == 1 its an illegal instruction
+        if ((csr_wdata_b_i[4:2] > 3'b010) || (csr_wdata_b_i[7:5] != 3'b0) || (csr_wdata_b_i[1:0] != 2'b0)) begin
+          vtype_n = {1'b1, csr_wdata_b_i[30:0]};
+        end else begin
+          vtype_n = csr_wdata_b_i;
+        end
+
+      end
+    end
+  end
+
+  // 2. determine vlmx by vtype
+  always_comb begin
+
+    vlmax = 0;
+
+    if (VPU == 1) begin
+      case (vtype_n[4:2])
+        3'b000:   vlmax = VLEN / 8;
+        3'b001:   vlmax = VLEN / 16;
+        3'b010:   vlmax = VLEN / 32;
+        default:  vlmax = VLEN / 32;
+      endcase
+    end
+  end
+
+  // 3. Set vl in dependency of vtype
+  always_comb begin
+    vl_n = vl_q;
+    if (VPU == 1) begin
+      if (csr_access_a_i == '1 && csr_addr_a_i == CSR_VL) begin
+        vl_n = (csr_wdata_a_i > vlmax) ? vlmax : csr_wdata_a_i;
+      end
+    end
   end
 
 
@@ -1196,8 +1262,8 @@ end //PULP_SECURE
     perf_rdata   = '0;
 
     // only perform csr access if we actually care about the read data
-    if (csr_access_i) begin
-      unique case (csr_addr_i)
+    if (csr_access_a_i) begin
+      unique case (csr_addr_a_i)
         PCER_USER, PCER_MACHINE: begin
           is_pcer = 1'b1;
           perf_rdata[N_PERF_COUNTERS-1:0] = PCER_q;
@@ -1214,14 +1280,14 @@ end //PULP_SECURE
       endcase
 
       // look for 780 to 79F, Performance Counter Counter Registers
-      if (csr_addr_i[11:5] == 7'b0111100) begin
+      if (csr_addr_a_i[11:5] == 7'b0111100) begin
         is_pccr     = 1'b1;
 
-        pccr_index = csr_addr_i[4:0];
+        pccr_index = csr_addr_a_i[4:0];
 `ifdef  ASIC_SYNTHESIS
         perf_rdata = PCCR_q[0];
 `else
-        perf_rdata = csr_addr_i[4:0] < N_PERF_COUNTERS ? PCCR_q[csr_addr_i[4:0]] : '0;
+        perf_rdata = csr_addr_a_i[4:0] < N_PERF_COUNTERS ? PCCR_q[csr_addr_a_i[4:0]] : '0;
 `endif
       end
     end
@@ -1242,10 +1308,10 @@ end //PULP_SECURE
 
     if (is_pccr == 1'b1) begin
       unique case (csr_op_i)
-        CSR_OP_NONE:   ;
-        CSR_OP_WRITE:  PCCR_n[0] = csr_wdata_i;
-        CSR_OP_SET:    PCCR_n[0] = csr_wdata_i | PCCR_q[0];
-        CSR_OP_CLEAR:  PCCR_n[0] = csr_wdata_i & ~(PCCR_q[0]);
+        CSR_OP_WRITE:  PCCR_n[0] = csr_wdata_a_i;
+        CSR_OP_SET:    PCCR_n[0] = csr_wdata_a_i | PCCR_q[0];
+        CSR_OP_CLEAR:  PCCR_n[0] = csr_wdata_a_i & ~(PCCR_q[0]);
+        default:;
       endcase
     end
   end
@@ -1263,10 +1329,10 @@ end //PULP_SECURE
 
       if (is_pccr == 1'b1 && (pccr_all_sel == 1'b1 || pccr_index == i)) begin
         unique case (csr_op_i)
-          CSR_OP_NONE:   ;
-          CSR_OP_WRITE:  PCCR_n[i] = csr_wdata_i;
-          CSR_OP_SET:    PCCR_n[i] = csr_wdata_i | PCCR_q[i];
-          CSR_OP_CLEAR:  PCCR_n[i] = csr_wdata_i & ~(PCCR_q[i]);
+          CSR_OP_WRITE:  PCCR_n[i] = csr_wdata_a_i;
+          CSR_OP_SET:    PCCR_n[i] = csr_wdata_a_i | PCCR_q[i];
+          CSR_OP_CLEAR:  PCCR_n[i] = csr_wdata_a_i & ~(PCCR_q[i]);
+          default:;
         endcase
       end
     end
@@ -1281,19 +1347,19 @@ end //PULP_SECURE
 
     if (is_pcmr) begin
       unique case (csr_op_i)
-        CSR_OP_NONE:   ;
-        CSR_OP_WRITE:  PCMR_n = csr_wdata_i[1:0];
-        CSR_OP_SET:    PCMR_n = csr_wdata_i[1:0] | PCMR_q;
-        CSR_OP_CLEAR:  PCMR_n = csr_wdata_i[1:0] & ~(PCMR_q);
+        CSR_OP_WRITE:  PCMR_n = csr_wdata_a_i[1:0];
+        CSR_OP_SET:    PCMR_n = csr_wdata_a_i[1:0] | PCMR_q;
+        CSR_OP_CLEAR:  PCMR_n = csr_wdata_a_i[1:0] & ~(PCMR_q);
+        default:;
       endcase
     end
 
     if (is_pcer) begin
       unique case (csr_op_i)
-        CSR_OP_NONE:   ;
-        CSR_OP_WRITE:  PCER_n = csr_wdata_i[N_PERF_COUNTERS-1:0];
-        CSR_OP_SET:    PCER_n = csr_wdata_i[N_PERF_COUNTERS-1:0] | PCER_q;
-        CSR_OP_CLEAR:  PCER_n = csr_wdata_i[N_PERF_COUNTERS-1:0] & ~(PCER_q);
+        CSR_OP_WRITE:  PCER_n = csr_wdata_a_i[N_PERF_COUNTERS-1:0];
+        CSR_OP_SET:    PCER_n = csr_wdata_a_i[N_PERF_COUNTERS-1:0] | PCER_q;
+        CSR_OP_CLEAR:  PCER_n = csr_wdata_a_i[N_PERF_COUNTERS-1:0] & ~(PCER_q);
+        default:;
       endcase
     end
   end

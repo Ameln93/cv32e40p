@@ -45,6 +45,7 @@ module riscv_id_stage
   parameter APU               =  0,
   parameter FPU               =  0,
   parameter VPU               =  0,
+  parameter VLEN              =  128,
   parameter Zfinx             =  0,
   parameter FP_DIVSQRT        =  0,
   parameter SHARED_FP         =  0,
@@ -170,8 +171,9 @@ module riscv_id_stage
     input  logic [C_RM-1:0]            frm_i,
 
     // CSR ID/EX
-    output logic        csr_access_ex_o,
-    output logic [1:0]  csr_op_ex_o,
+    output logic        csr_access_ex_a_o,
+    output logic        csr_access_ex_b_o,
+    output logic [2:0]  csr_op_ex_o,
     input  PrivLvl_t    current_priv_lvl_i,
     output logic        csr_irq_sec_o,
     output logic [5:0]  csr_cause_o,
@@ -289,6 +291,7 @@ module riscv_id_stage
   logic [31:0] imm_u_type;
   logic [31:0] imm_uj_type;
   logic [31:0] imm_z_type;
+  logic [31:0] imm_vz_type;
   logic [31:0] imm_s2_type;
   logic [31:0] imm_bi_type;
   logic [31:0] imm_s3_type;
@@ -336,7 +339,7 @@ module riscv_id_stage
   logic [ALU_OP_WIDTH-1:0] alu_operator;
   logic [2:0]  alu_op_a_mux_sel;
   logic [2:0]  alu_op_b_mux_sel;
-  logic [1:0]  alu_op_c_mux_sel;
+  logic [2:0]  alu_op_c_mux_sel;
   logic [1:0]  regc_mux;
 
   logic [0:0]  imm_a_mux_sel;
@@ -402,9 +405,10 @@ module riscv_id_stage
   logic                   hwloop_valid;
 
   // CSR control
-  logic        csr_access;
-  logic [1:0]  csr_op;
-  logic        csr_status;
+  logic       csr_access_a;
+  logic       csr_access_b;
+  logic [2:0] csr_op;
+  logic       csr_status;
 
   logic        prepost_useincr;
 
@@ -472,6 +476,7 @@ module riscv_id_stage
 
   // immediate for CSR manipulatin (zero extended)
   assign imm_z_type  = { 27'b0, instr[`REG_S1] };
+  assign imm_vz_type  = {21'b0, instr[30:20] };
 
   assign imm_s2_type = { 27'b0, instr[24:20] };
   assign imm_bi_type = { {27{instr[24]}}, instr[24:20] };
@@ -638,6 +643,8 @@ module riscv_id_stage
       OP_A_CURRPC:       alu_operand_a = pc_id_i;
       OP_A_IMM:          alu_operand_a = imm_a;
       OP_A_VINSN:        alu_operand_a = instr;
+      // VLMAX depends on vtype -> will be trimmed by cs_register module
+      OP_A_VLMAX:        alu_operand_a = {32{1'b1}};
       default:           alu_operand_a = operand_a_fw_id;
     endcase; // case (alu_op_a_mux_sel)
   end
@@ -697,7 +704,8 @@ module riscv_id_stage
       OP_B_REGC_OR_FWD:  operand_b = operand_c_fw_id;
       OP_B_IMM:          operand_b = imm_b;
       OP_B_BMASK:        operand_b = $unsigned(operand_b_fw_id[4:0]);
-      OP_B_VCSR:         operand_b = 32'b0; // CSR later set by ex_stage
+      OP_B_VCSR:         operand_b = 32'b0; // CSR data set by ex_stage
+      OP_B_VSETVL:       operand_b = {8'h00, CSR_VTYPE, CSR_VL}; //CSR address
       default:           operand_b = operand_b_fw_id;
     endcase // case (alu_op_b_mux_sel)
   end
@@ -745,6 +753,7 @@ module riscv_id_stage
       OP_C_REGB_OR_FWD:  operand_c = operand_b_fw_id;
       OP_C_JT:           operand_c = jump_target;
       OP_C_VADDR:        operand_c = operand_c_fw_id;
+      OP_C_IMM:          operand_c = imm_vz_type;
       default:           operand_c = operand_c_fw_id;
     endcase // case (alu_op_c_mux_sel)
   end
@@ -920,7 +929,7 @@ module riscv_id_stage
           end
           // VPU case equal to default
           OP_C_VADDR: begin
-             apu_read_regs[2]        = regfile_addr_rc_id;
+             apu_read_regs[2]        = regfile_addr_ra_id;
              apu_read_regs_valid [2] = 1'b1;
           end
 
@@ -957,7 +966,7 @@ module riscv_id_stage
 
   assign apu_perf_dep_o      = apu_stall;
   // stall when we access the CSR after a multicycle APU instruction
-  assign csr_apu_stall       = (csr_access & (apu_en_ex_o & (apu_lat_ex_o[1] == 1'b1) | apu_busy_i));
+  assign csr_apu_stall       = (csr_access_a & (apu_en_ex_o & (apu_lat_ex_o[1] == 1'b1) | apu_busy_i));
 
 `ifndef SYNTHESIS
   always_comb begin
@@ -1135,7 +1144,8 @@ module riscv_id_stage
     .regfile_alu_waddr_sel_o         ( regfile_alu_waddr_mux_sel ),
 
     // CSR control signals
-    .csr_access_o                    ( csr_access                ),
+    .csr_access_a_o                  ( csr_access_a              ),
+    .csr_access_b_o                  ( csr_access_b              ),
     .csr_status_o                    ( csr_status                ),
     .csr_op_o                        ( csr_op                    ),
     .current_priv_lvl_i              ( current_priv_lvl_i        ),
@@ -1472,7 +1482,8 @@ module riscv_id_stage
       regfile_alu_we_ex_o         <= 1'b0;
       prepost_useincr_ex_o        <= 1'b0;
 
-      csr_access_ex_o             <= 1'b0;
+      csr_access_ex_a_o           <= 1'b0;
+      csr_access_ex_b_o           <= 1'b0;
       csr_op_ex_o                 <= CSR_OP_NONE;
 
       data_we_ex_o                <= 1'b0;
@@ -1580,7 +1591,8 @@ module riscv_id_stage
 
         prepost_useincr_ex_o        <= prepost_useincr;
 
-        csr_access_ex_o             <= csr_access;
+        csr_access_ex_a_o           <= csr_access_a;
+        csr_access_ex_b_o           <= csr_access_b;
         csr_op_ex_o                 <= csr_op;
 
         data_req_ex_o               <= data_req_id;
@@ -1628,7 +1640,7 @@ module riscv_id_stage
 
         alu_en_ex_o                 <= 1'b1;
 
-      end else if (csr_access_ex_o) begin
+      end else if (csr_access_ex_a_o) begin
        //In the EX stage there was a CSR access, to avoid multiple
        //writes to the RF, disable regfile_alu_we_ex_o.
        //Not doing it can overwrite the RF file with the currennt CSR value rather than the old one

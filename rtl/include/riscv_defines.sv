@@ -199,10 +199,10 @@ parameter VEC_MODE8  = 2'b11;
 /////////////////////////////////////////////////////////
 
 // CSR operations
-parameter CSR_OP_NONE  = 2'b00;
-parameter CSR_OP_WRITE = 2'b01;
-parameter CSR_OP_SET   = 2'b10;
-parameter CSR_OP_CLEAR = 2'b11;
+parameter CSR_OP_NONE   = 2'b00;
+parameter CSR_OP_WRITE  = 2'b01;
+parameter CSR_OP_SET    = 2'b10;
+parameter CSR_OP_CLEAR  = 2'b11;
 
 
 // SPR for debugger, not accessible by CPU
@@ -244,7 +244,8 @@ parameter OP_A_CURRPC      = 3'b001;
 parameter OP_A_IMM         = 3'b010;
 parameter OP_A_REGB_OR_FWD = 3'b011;
 parameter OP_A_REGC_OR_FWD = 3'b100;
-parameter OP_A_VINSN       = 3'b111;
+parameter OP_A_VINSN       = 3'b101;
+parameter OP_A_VLMAX       = 3'b110;
 
 // immediate a selection
 parameter IMMA_Z      = 1'b0;
@@ -256,7 +257,8 @@ parameter OP_B_REGC_OR_FWD = 3'b001;
 parameter OP_B_IMM         = 3'b010;
 parameter OP_B_REGA_OR_FWD = 3'b011;
 parameter OP_B_BMASK       = 3'b100;
-parameter OP_B_VCSR        = 3'b111;
+parameter OP_B_VCSR        = 3'b101;
+parameter OP_B_VSETVL      = 3'b110;
 
 // immediate b selection
 parameter IMMB_I      = 4'b0000;
@@ -270,6 +272,7 @@ parameter IMMB_VU     = 4'b0111;
 parameter IMMB_SHUF   = 4'b1000;
 parameter IMMB_CLIP   = 4'b1001;
 parameter IMMB_BI     = 4'b1011;
+
 
 // bit mask selection
 parameter BMASK_A_ZERO = 1'b0;
@@ -291,10 +294,11 @@ parameter MIMM_ZERO    = 1'b0;
 parameter MIMM_S3      = 1'b1;
 
 // operand c selection
-parameter OP_C_REGC_OR_FWD = 2'b00;
-parameter OP_C_REGB_OR_FWD = 2'b01;
-parameter OP_C_JT          = 2'b10;
-parameter OP_C_VADDR       = 2'b11;
+parameter OP_C_REGC_OR_FWD = 3'b000;
+parameter OP_C_REGB_OR_FWD = 3'b001;
+parameter OP_C_JT          = 3'b010;
+parameter OP_C_IMM         = 3'b100;
+parameter OP_C_VADDR       = 3'b101;
 
 // branch types
 parameter BRANCH_NONE = 2'b00;
@@ -458,13 +462,13 @@ parameter CSR_DSCRATCH0      = 12'h7b2; // optional
 parameter CSR_DSCRATCH1      = 12'h7b3; // optional
 
   // VPU
-parameter CSR_VLENB     = 'h008;
-parameter CSR_VTYPE     = 'h009;
-parameter CSR_VL        = 'h00A;
-parameter CSR_VSTART    = 'h00F;
-parameter CSR_VXSAT     = 'hc20;
-parameter CSR_VXRM      = 'hc21;
-parameter CSR_VCSR      = 'hc22;
+parameter CSR_VSTART    = 12'h008;
+parameter CSR_VXRM      = 12'h009;
+parameter CSR_VXSAT     = 12'h00A;
+parameter CSR_VCSR      = 12'h00F;
+parameter CSR_VL        = 12'hc20;
+parameter CSR_VTYPE     = 12'hc21;
+parameter CSR_VLENB     = 12'hc22;
 
 ///////////////////////////////////////////////////////////
 // __   _____ _   _   __  __                _            //

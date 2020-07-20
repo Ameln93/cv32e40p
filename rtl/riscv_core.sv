@@ -45,6 +45,7 @@ module riscv_core
   parameter PULP_CLUSTER        =  1,
   parameter FPU                 =  0,
   parameter VPU                 =  0,
+  parameter VLEN                = 128,
   parameter Zfinx               =  0,
   parameter FP_DIVSQRT          =  0,
   parameter SHARED_FP           =  0,
@@ -52,7 +53,7 @@ module riscv_core
   parameter SHARED_INT_MULT     =  0,
   parameter SHARED_INT_DIV      =  0,
   parameter SHARED_FP_DIVSQRT   =  0,
-  parameter WAPUTYPE            =  0,
+  parameter WAPUTYPE            =  0, // set to 5 for VPU
   parameter APU_NARGS_CPU       =  3,
   parameter APU_WOP_CPU         =  6,
   parameter APU_NDSFLAGS_CPU    = 15,
@@ -249,16 +250,19 @@ module riscv_core
   logic [31:0] regfile_alu_wdata_fw;
 
   // CSR control
-  logic        csr_access_ex;
+  logic        csr_access_ex_a;
+  logic        csr_access_ex_b;
   logic  [1:0] csr_op_ex;
   logic [23:0] mtvec, utvec;
 
-  logic        csr_access;
+  logic       csr_access_a;
+  logic       csr_access_b;
   logic  [1:0] csr_op;
-  logic [11:0] csr_addr;
-  logic [11:0] csr_addr_int;
+  logic [11:0] csr_addr_a;
+  logic [11:0] csr_addr_b;
   logic [31:0] csr_rdata;
-  logic [31:0] csr_wdata;
+  logic [31:0] csr_wdata_a;
+  logic [31:0] csr_wdata_b;
   PrivLvl_t    current_priv_lvl;
 
   // Data Memory Control:  From ID stage (id-ex pipe) <--> load store unit
@@ -553,6 +557,7 @@ module riscv_core
     .APU                          ( APU                  ),
     .FPU                          ( FPU                  ),
     .VPU                          ( VPU                  ),
+    .VLEN                         ( VLEN                 ),
     .Zfinx                        ( Zfinx                ),
     .FP_DIVSQRT                   ( FP_DIVSQRT           ),
     .SHARED_FP                    ( SHARED_FP            ),
@@ -679,7 +684,8 @@ module riscv_core
     .apu_busy_i                   ( apu_busy                ),
 
     // CSR ID/EX
-    .csr_access_ex_o              ( csr_access_ex        ),
+    .csr_access_ex_a_o            ( csr_access_ex_a      ),
+    .csr_access_ex_b_o            ( csr_access_ex_b      ),
     .csr_op_ex_o                  ( csr_op_ex            ),
     .current_priv_lvl_i           ( current_priv_lvl     ),
     .csr_irq_sec_o                ( csr_irq_sec          ),
@@ -862,7 +868,7 @@ module riscv_core
     .lsu_rdata_i                ( lsu_rdata                    ),
 
     // interface with CSRs
-    .csr_access_i               ( csr_access_ex                ),
+    .csr_access_i               ( csr_access_ex_a              ),
     .csr_rdata_i                ( csr_rdata                    ),
 
     // From ID Stage: Regfile control signals
@@ -965,6 +971,7 @@ module riscv_core
     .N_EXT_CNT       ( N_EXT_PERF_COUNTERS   ),
     .FPU             ( FPU                   ),
     .VPU             ( VPU                   ),
+    .VLEN            ( VLEN                  ),
     .APU             ( APU                   ),
     .PULP_SECURE     ( PULP_SECURE           ),
     .USE_PMP         ( USE_PMP               ),
@@ -982,10 +989,16 @@ module riscv_core
     .utvec_o                 ( utvec              ),
     // boot address
     .boot_addr_i             ( boot_addr_i[31:1]  ),
+
     // Interface to CSRs (SRAM like)
-    .csr_access_i            ( csr_access         ),
-    .csr_addr_i              ( csr_addr           ),
-    .csr_wdata_i             ( csr_wdata          ),
+    .csr_access_a_i          ( csr_access_a       ),
+    .csr_addr_a_i            ( csr_addr_a         ),
+    .csr_wdata_a_i           ( csr_wdata_a        ),
+
+    .csr_access_b_i          ( csr_access_b       ),
+    .csr_addr_b_i            ( csr_addr_b         ),
+    .csr_wdata_b_i           ( csr_wdata_b        ),
+
     .csr_op_i                ( csr_op             ),
     .csr_rdata_o             ( csr_rdata          ),
 
@@ -1071,14 +1084,15 @@ module riscv_core
   );
 
   //  CSR access
-  assign csr_access   =  csr_access_ex;
-  assign csr_addr     =  csr_addr_int;
-  assign csr_wdata    =  alu_operand_a_ex;
-  assign csr_op       =  csr_op_ex;
+  assign csr_op        =  csr_op_ex;
 
-  assign csr_addr_int = csr_access_ex ? alu_operand_b_ex[11:0] : '0;
+  assign csr_access_a  =  csr_access_ex_a;
+  assign csr_addr_a    =  csr_access_ex_a ? alu_operand_b_ex[11: 0] : '0;
+  assign csr_wdata_a   =  alu_operand_a_ex;
 
-
+  assign csr_access_b  =  csr_access_ex_b;
+  assign csr_addr_b    =  csr_access_ex_b ? alu_operand_b_ex[23:12] : '0;
+  assign csr_wdata_b   =  alu_operand_c_ex;
 
   ///////////////////////////
   //   ____  __  __ ____   //
