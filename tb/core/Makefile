@@ -1,4 +1,4 @@
-# Copyright 2019 Clifford Wolf
+
 # Copyright 2019 Robert Balas
 #
 # Permission to use, copy, modify, and/or distribute this software for any
@@ -96,13 +96,19 @@ CSMITH_TIMEOUT_VSIM      = 3000
 CSMITH_TIMEOUT_VERI      = 100
 
 # custom vars
-CUST_ASM_DIR	:= custom/src/asm
-CUST_SRC_DIR	:= custom/src/c
-CUST_INC_DIR	:= custom/src/c/include
-CUST_OBJ_DIR	:= custom/obj
-CUST_SRC 			:= $(wildcard $(CUST_SRC_DIR)/*.c)
-CUST_DEPS			:= -I$(CUST_INC_DIR)
-CUST_OBJ  		:= $(patsubst $(CUST_SRC_DIR)/%.c, $(CUST_OBJ_DIR)/%.o, $(CUST_SRC))
+CUST_SRC_ASM_DIR	:= custom/src/asm
+CUST_SRC_C_DIR		:= custom/src/c
+CUST_INC_DIR			:= custom/src/c/include
+CUST_OBJ_DIR			:= custom/obj
+CUST_ASM_DIR			:= custom/asm
+CUST_DMP_DIR			:= custom/dmp
+
+CUST_SRC 					:= $(wildcard $(CUST_SRC_C_DIR)/*.c)
+CUST_SRC_VPU			:= $(filter-out $(CUST_SRC_C_DIR)/syscalls.c, $(CUST_SRC))
+CUST_DEPS					:= -I$(CUST_INC_DIR)
+CUST_OBJ  				:= $(patsubst $(CUST_SRC_C_DIR)/%.c, $(CUST_OBJ_DIR)/%.o, $(CUST_SRC))
+CUST_ASM  				:= $(patsubst $(CUST_SRC_C_DIR)/%.c, $(CUST_ASM_DIR)/%.s, $(CUST_SRC_VPU))
+CUST_DMP  				:= $(CUST_DMP_DIR)/main.dump
 
 # assume verilator if no target chosen
 .DEFAULT_GOAL := custom-veri-run
@@ -223,26 +229,36 @@ tb-clean:
 #
 mkdir_cust_obj:
 
-$(CUST_OBJ_DIR)/%.o: $(CUST_SRC_DIR)/%.c $(CUS_DEPS)
+$(CUST_OBJ_DIR)/%.o: $(CUST_SRC_C_DIR)/%.c
 	@mkdir -p $(CUST_OBJ_DIR)
-	$(RISCV_EXE_PREFIX)gcc -c -march=rv32ic -g -Os -Wall \
+	$(RISCV_EXE_PREFIX)gcc -c -march=rv32imcv -g -Os -Wall \
 		$(CUST_DEPS) \
 		-nostdlib -o $@ $<
+
+$(CUST_ASM):$(CUST_ASM_DIR)/%.s: $(CUST_SRC_C_DIR)/%.c
+	@mkdir -p $(CUST_ASM_DIR)
+	$(RISCV_EXE_PREFIX)gcc -g -Os -march=rv32imcv -w -nostdlib -o $@ \
+		$(CUST_DEPS) \
+		$< -S
+
+$(CUST_DMP): custom/main.elf
+	@mkdir -p $(CUST_DMP_DIR)
+	$(RISCV_EXE_PREFIX)objdump $< -d  > $@
 
 custom/main.elf: $(CUST_OBJ)
 	$(RISCV_EXE_PREFIX)gcc -g -Os -march=rv32imcv -w -nostdlib -o $@ \
 		$(CUST_DEPS) \
 		-T custom/src/link.ld  \
 		-static \
-		$(CUST_ASM_DIR)/crt0.S \
+		$(CUST_SRC_ASM_DIR)/crt0.S \
 		$(CUST_OBJ) \
-		$(CUST_ASM_DIR)/vectors.S \
+		$(CUST_SRC_ASM_DIR)/vectors.S \
 		-I $(RISCV)/riscv32-unknown-elf/include \
 		-L $(RISCV)/riscv32-unknown-elf/lib \
 		-lc -lm -lgcc
 
 custom-clean:
-	rm -rf custom/main.elf custom/main.hex $(CUST_OBJ_DIR)
+	rm -rf custom/main.elf custom/main.hex $(CUST_OBJ_DIR) $(CUST_ASM_DIR) $(CUST_DMP_DIR)
 
 .PHONY: custom-vsim-run
 custom-vsim-run: vsim-all custom/main.hex
@@ -256,7 +272,7 @@ custom-vsim-run-gui: vsim-run-gui
 
 
 .PHONY: custom-veri-run
-custom-veri-run: verilate custom/main.hex
+custom-veri-run: verilate custom/main.hex $(CUST_ASM) $(CUST_DMP)
 	./testbench_verilator $(VERI_FLAGS) \
 		"+firmware=custom/main.hex"
 

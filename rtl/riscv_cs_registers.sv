@@ -1006,7 +1006,7 @@ end //PULP_SECURE
 
         // If SEW > 32 or LMUL != 1 or vta == 1 or vma == 1 its an illegal instruction
         if ((csr_wdata_b_i[4:2] > 3'b010) || (csr_wdata_b_i[7:5] != 3'b0) || (csr_wdata_b_i[1:0] != 2'b0)) begin
-          vtype_n = {1'b1, csr_wdata_b_i[30:0]};
+          vtype_n = 32'h80000000;
         end else begin
           vtype_n = csr_wdata_b_i;
         end
@@ -1021,12 +1021,14 @@ end //PULP_SECURE
     vlmax = 0;
 
     if (VPU == 1) begin
-      case (vtype_n[4:2])
-        3'b000:   vlmax = VLEN / 8;
-        3'b001:   vlmax = VLEN / 16;
-        3'b010:   vlmax = VLEN / 32;
-        default:  vlmax = VLEN / 32;
-      endcase
+      if (vtype_n != 32'h80000000) begin
+        case (vtype_n[4:2])
+          3'b000:   vlmax = VLEN / 8;
+          3'b001:   vlmax = VLEN / 16;
+          3'b010:   vlmax = VLEN / 32;
+          default:  vlmax = VLEN / 32;
+        endcase
+      end
     end
   end
 
