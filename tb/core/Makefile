@@ -48,8 +48,8 @@ VCS_FLAGS               =
 SIMV_FLAGS              =
 
 # verilator configuration
-VERILATOR		= verilator
-VERI_FLAGS              +=
+VERILATOR								= verilator
+VERI_FLAGS              += "+vcd"
 VERI_COMPILE_FLAGS      += -Wno-BLKANDNBLK # hope this doesn't hurt us in the long run
 VERI_TRACE              =
 VERI_DIR                = cobj_dir
@@ -211,11 +211,11 @@ tb-clean:
 # We link with our custom crt0.s and syscalls.c against newlib so that we can
 # use the c standard library
 custom/hello_world.elf: custom/hello_world.c
-	$(RISCV_EXE_PREFIX)gcc -march=rv32imc -o $@ -w -Os -g -nostdlib \
+	$(RISCV_EXE_PREFIX)gcc -march=rv32imcv -o $@ -w -Os -g -nostdlib \
 		-T custom/link.ld  \
 		-static \
 		custom/crt0.S \
-		$^ custom/syscalls.c custom/vectors.S \
+		$^ custom/syscalls.c custom/vectors.S custom/test.S \
 		-I $(RISCV)/riscv32-unknown-elf/include \
 		-L $(RISCV)/riscv32-unknown-elf/lib \
 		-lc -lm -lgcc
@@ -241,13 +241,13 @@ custom-veri-run: verilate custom/hello_world.hex
 # compile and dump picorv firmware
 firmware/firmware.elf: $(FIRMWARE_OBJS) $(FIRMWARE_TEST_OBJS) $(COMPLIANCE_TEST_OBJS) \
 				firmware/link.ld
-	$(RISCV_EXE_PREFIX)gcc -g -Os -march=rv32imc -ffreestanding -nostdlib -o $@ \
+	$(RISCV_EXE_PREFIX)gcc -g -Os -march=rv32imcv -ffreestanding -nostdlib -o $@ \
 		$(RISCV_TEST_INCLUDES) \
 		-Wl,-Bstatic,-T,firmware/link.ld,-Map,firmware/firmware.map,--strip-debug \
 		$(FIRMWARE_OBJS) $(FIRMWARE_TEST_OBJS) $(COMPLIANCE_TEST_OBJS) -lgcc
 
 firmware/start.o: firmware/start.S
-	$(RISCV_EXE_PREFIX)gcc -c -march=rv32imc -g -o $@ $<
+	$(RISCV_EXE_PREFIX)gcc -c -march=rv32imcv -g -o $@ $<
 
 firmware/%.o: firmware/%.c
 	$(RISCV_EXE_PREFIX)gcc -c -march=rv32ic -g -Os --std=c99 -Wall \
@@ -331,7 +331,7 @@ csmith/test_ref: csmith/test.c
 	gcc -m32 -o csmith/test_ref -w -Os -I $(CSMITH_INCLUDE) csmith/test.c
 
 csmith/test.elf: csmith/test.c csmith/syscalls.c csmith/start.S
-	$(RISCV_EXE_PREFIX)gcc -march=rv32imc -o csmith/test.elf -w -Os \
+	$(RISCV_EXE_PREFIX)gcc -march=rv32imcv -o csmith/test.elf -w -Os \
 		-I $(CSMITH_INCLUDE) \
 		-T csmith/link.ld  \
 		csmith/test.c csmith/syscalls.c csmith/start.S -Wl,--verbose

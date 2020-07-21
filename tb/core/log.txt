@@ -1,0 +1,58 @@
+verilator --cc --sv --exe \
+	"--trace" \
+	--Wno-lint --Wno-UNOPTFLAT \
+	--Wno-MODDUP +incdir+../../rtl/include --top-module \
+	tb_top_verilator riscv_wrapper.sv dp_ram.sv cluster_clock_gating.sv tb_top_verilator.sv mm_ram.sv ../../rtl/include/fpnew_pkg.sv ../../rtl/include/apu_core_package.sv ../../rtl/include/riscv_defines.sv ../../rtl/include/riscv_tracer_defines.sv ../../rtl/include/../../tb/tb_riscv/include/perturbation_defines.sv ../../rtl/riscv_if_stage.sv ../../rtl/riscv_hwloop_controller.sv ../../rtl/riscv_tracer.sv ../../rtl/riscv_prefetch_buffer.sv ../../rtl/riscv_decoder.sv ../../rtl/riscv_cs_registers.sv ../../rtl/riscv_register_file.sv ../../rtl/riscv_load_store_unit.sv ../../rtl/riscv_id_stage.sv ../../rtl/riscv_core.sv ../../rtl/riscv_compressed_decoder.sv ../../rtl/riscv_fetch_fifo.sv ../../rtl/riscv_alu_div.sv ../../rtl/riscv_prefetch_L0_buffer.sv ../../rtl/riscv_hwloop_regs.sv ../../rtl/riscv_mult.sv ../../rtl/register_file_test_wrap.sv ../../rtl/riscv_L0_buffer.sv ../../rtl/riscv_int_controller.sv ../../rtl/riscv_ex_stage.sv ../../rtl/riscv_alu_basic.sv ../../rtl/riscv_pmp.sv ../../rtl/riscv_apu_disp.sv ../../rtl/riscv_alu.sv ../../rtl/riscv_controller.sv ../../tb/tb_riscv/riscv_random_stall.sv ../../tb/tb_riscv/riscv_random_interrupt_generator.sv \
+	tb_top_verilator.cpp --Mdir cobj_dir \
+	-CFLAGS "-std=gnu++11 -O2 "-DVCD_TRACE"" \
+	-Wno-BLKANDNBLK 
+make -C cobj_dir -f Vtb_top_verilator.mk
+make[1]: Entering directory '/mnt/data/universitaet/tu_dresden/sem11/cv32e40p/tb/core/cobj_dir'
+g++  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -faligned-new -Wno-bool-operation -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-shadow     -std=gnu++11 -O2 -DVCD_TRACE  -Os -c -o tb_top_verilator.o ../tb_top_verilator.cpp
+g++  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -faligned-new -Wno-bool-operation -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-shadow     -std=gnu++11 -O2 -DVCD_TRACE  -Os -c -o verilated.o /usr/local/share/verilator/include/verilated.cpp
+g++  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -faligned-new -Wno-bool-operation -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-shadow     -std=gnu++11 -O2 -DVCD_TRACE  -Os -c -o verilated_dpi.o /usr/local/share/verilator/include/verilated_dpi.cpp
+g++  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -faligned-new -Wno-bool-operation -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-shadow     -std=gnu++11 -O2 -DVCD_TRACE  -Os -c -o verilated_vcd_c.o /usr/local/share/verilator/include/verilated_vcd_c.cpp
+g++  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -faligned-new -Wno-bool-operation -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-shadow     -std=gnu++11 -O2 -DVCD_TRACE  -Os -c -o Vtb_top_verilator.o Vtb_top_verilator.cpp
+g++  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -faligned-new -Wno-bool-operation -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-shadow     -std=gnu++11 -O2 -DVCD_TRACE  -Os -c -o Vtb_top_verilator__1.o Vtb_top_verilator__1.cpp
+g++  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -faligned-new -Wno-bool-operation -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-shadow     -std=gnu++11 -O2 -DVCD_TRACE  -Os -c -o Vtb_top_verilator__2.o Vtb_top_verilator__2.cpp
+g++  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -faligned-new -Wno-bool-operation -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-shadow     -std=gnu++11 -O2 -DVCD_TRACE  -Os -c -o Vtb_top_verilator___024unit.o Vtb_top_verilator___024unit.cpp
+g++  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -faligned-new -Wno-bool-operation -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-shadow     -std=gnu++11 -O2 -DVCD_TRACE  -Os -c -o Vtb_top_verilator__Dpi.o Vtb_top_verilator__Dpi.cpp
+g++  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -faligned-new -Wno-bool-operation -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-shadow     -std=gnu++11 -O2 -DVCD_TRACE  -Os -c -o Vtb_top_verilator__Trace.o Vtb_top_verilator__Trace.cpp
+g++  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -faligned-new -Wno-bool-operation -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-shadow     -std=gnu++11 -O2 -DVCD_TRACE   -c -o Vtb_top_verilator__Slow.o Vtb_top_verilator__Slow.cpp
+g++  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -faligned-new -Wno-bool-operation -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-shadow     -std=gnu++11 -O2 -DVCD_TRACE   -c -o Vtb_top_verilator__1__Slow.o Vtb_top_verilator__1__Slow.cpp
+g++  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -faligned-new -Wno-bool-operation -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-shadow     -std=gnu++11 -O2 -DVCD_TRACE   -c -o Vtb_top_verilator__2__Slow.o Vtb_top_verilator__2__Slow.cpp
+g++  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -faligned-new -Wno-bool-operation -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-shadow     -std=gnu++11 -O2 -DVCD_TRACE   -c -o Vtb_top_verilator___024unit__Slow.o Vtb_top_verilator___024unit__Slow.cpp
+g++  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -faligned-new -Wno-bool-operation -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-shadow     -std=gnu++11 -O2 -DVCD_TRACE   -c -o Vtb_top_verilator__Syms.o Vtb_top_verilator__Syms.cpp
+g++  -I.  -MMD -I/usr/local/share/verilator/include -I/usr/local/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=1 -faligned-new -Wno-bool-operation -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-shadow     -std=gnu++11 -O2 -DVCD_TRACE   -c -o Vtb_top_verilator__Trace__Slow.o Vtb_top_verilator__Trace__Slow.cpp
+ar -cr Vtb_top_verilator__ALL.a Vtb_top_verilator.o Vtb_top_verilator__1.o Vtb_top_verilator__2.o Vtb_top_verilator___024unit.o Vtb_top_verilator__Dpi.o Vtb_top_verilator__Trace.o Vtb_top_verilator__Slow.o Vtb_top_verilator__1__Slow.o Vtb_top_verilator__2__Slow.o Vtb_top_verilator___024unit__Slow.o Vtb_top_verilator__Syms.o Vtb_top_verilator__Trace__Slow.o
+ranlib Vtb_top_verilator__ALL.a
+g++    tb_top_verilator.o verilated.o verilated_dpi.o verilated_vcd_c.o Vtb_top_verilator__ALL.a      -o Vtb_top_verilator
+make[1]: Leaving directory '/mnt/data/universitaet/tu_dresden/sem11/cv32e40p/tb/core/cobj_dir'
+cp cobj_dir/Vtb_top_verilator testbench_verilator
+/opt/riscv/rv32imcv/bin/riscv32-unknown-elf-gcc -march=rv32imcv -o custom/hello_world.elf -w -Os -g -nostdlib \
+	-T custom/link.ld  \
+	-static \
+	custom/crt0.S \
+	custom/hello_world.c custom/syscalls.c custom/vectors.S custom/test.S \
+	-I /opt/riscv/rv32imcv/riscv32-unknown-elf/include \
+	-L /opt/riscv/rv32imcv/riscv32-unknown-elf/lib \
+	-lc -lm -lgcc
+/opt/riscv/rv32imcv/bin/riscv32-unknown-elf-objcopy -O verilog custom/hello_world.elf custom/hello_world.hex
+./testbench_verilator "+vcd" \
+	"+firmware=custom/hello_world.hex"
+  scopesDump:
+    SCOPE 0x559bfc0ce1e0: TOP.tb_top_verilator.riscv_wrapper_i.ram_i
+    SCOPE 0x559bfc0ce218: TOP.tb_top_verilator.riscv_wrapper_i.ram_i.dp_ram_i
+       DPI-EXPORT 0x559bfab52b0e: read_byte
+       DPI-EXPORT 0x559bfab52b20: write_byte
+    SCOPE 0x559bfc0ce250: TOP.tb_top_verilator.riscv_wrapper_i.ram_i.read_mux
+    SCOPE 0x559bfc0ce288: TOP.tb_top_verilator.riscv_wrapper_i.ram_i.unnamedblk1
+
+[CORE] Core settings: PULP_SECURE =           1, N_PMP_ENTRIES =          16, N_PMP_CFG           4
+finished dumping memory
+ecall exception handler entered
+
+Hello World 
+VLEN in Byte: 0000 
+EXIT SUCCESS
+- tb_top_verilator.sv:83: Verilog $finish

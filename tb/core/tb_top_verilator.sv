@@ -89,8 +89,11 @@ module tb_top_verilator
         #(.INSTR_RDATA_WIDTH (INSTR_RDATA_WIDTH),
           .RAM_ADDR_WIDTH (RAM_ADDR_WIDTH),
           .BOOT_ADDR (BOOT_ADDR),
-          .PULP_SECURE (1)) // need to enable -Wno-BLKANDNBLK to silence warnin
+          .PULP_SECURE (1), // need to enable -Wno-BLKANDNBLK to silence warnin
                             // about assignment from blk to non-blk
+          .VPU (1),
+          .VLEN (128)
+        )
 
     riscv_wrapper_i
         (.clk_i          ( clk_i          ),
