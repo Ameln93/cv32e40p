@@ -95,10 +95,19 @@ CSMITH_TIMEOUT_REF       = 2
 CSMITH_TIMEOUT_VSIM      = 3000
 CSMITH_TIMEOUT_VERI      = 100
 
-# assume verilator if no target chosen
-.DEFAULT_GOAL := firmware-veri-run
+# custom vars
+CUST_ASM_DIR	:= custom/src/asm
+CUST_SRC_DIR	:= custom/src/c
+CUST_INC_DIR	:= custom/src/c/include
+CUST_OBJ_DIR	:= custom/obj
+CUST_SRC 			:= $(wildcard $(CUST_SRC_DIR)/*.c)
+CUST_DEPS			:= -I$(CUST_INC_DIR)
+CUST_OBJ  		:= $(patsubst $(CUST_SRC_DIR)/%.c, $(CUST_OBJ_DIR)/%.o, $(CUST_SRC))
 
-all: firmware-veri-run
+# assume verilator if no target chosen
+.DEFAULT_GOAL := custom-veri-run
+
+all: custom-veri-run
 
 # vsim testbench compilation and optimization
 vlib: .lib-rtl
@@ -167,6 +176,7 @@ testbench_verilator: $(RTLSRC_VERI_TB) $(RTLSRC_PKG) $(RTLSRC)
 	$(MAKE) -C $(VERI_DIR) -f Vtb_top_verilator.mk
 	cp $(VERI_DIR)/Vtb_top_verilator testbench_verilator
 
+
 verilate-clean:
 	if [ -d $(VERI_DIR) ]; then rm -r $(VERI_DIR); fi
 	rm -rf testbench_verilator
@@ -210,33 +220,45 @@ tb-clean:
 # This is an example for running a hello world in the testbench
 # We link with our custom crt0.s and syscalls.c against newlib so that we can
 # use the c standard library
-custom/hello_world.elf: custom/hello_world.c
-	$(RISCV_EXE_PREFIX)gcc -march=rv32imcv -o $@ -w -Os -g -nostdlib \
-		-T custom/link.ld  \
+#
+mkdir_cust_obj:
+
+$(CUST_OBJ_DIR)/%.o: $(CUST_SRC_DIR)/%.c $(CUS_DEPS)
+	@mkdir -p $(CUST_OBJ_DIR)
+	$(RISCV_EXE_PREFIX)gcc -c -march=rv32ic -g -Os -Wall \
+		$(CUST_DEPS) \
+		-nostdlib -o $@ $<
+
+custom/main.elf: $(CUST_OBJ)
+	$(RISCV_EXE_PREFIX)gcc -g -Os -march=rv32imcv -w -nostdlib -o $@ \
+		$(CUST_DEPS) \
+		-T custom/src/link.ld  \
 		-static \
-		custom/crt0.S \
-		$^ custom/syscalls.c custom/vectors.S custom/test.S \
+		$(CUST_ASM_DIR)/crt0.S \
+		$(CUST_OBJ) \
+		$(CUST_ASM_DIR)/vectors.S \
 		-I $(RISCV)/riscv32-unknown-elf/include \
 		-L $(RISCV)/riscv32-unknown-elf/lib \
 		-lc -lm -lgcc
+
 custom-clean:
-	rm -rf custom/hello_world.elf custom/hello_world.hex
+	rm -rf custom/main.elf custom/main.hex $(CUST_OBJ_DIR)
 
 .PHONY: custom-vsim-run
-custom-vsim-run: vsim-all custom/hello_world.hex
-custom-vsim-run: ALL_VSIM_FLAGS += "+firmware=custom/hello_world.hex"
+custom-vsim-run: vsim-all custom/main.hex
+custom-vsim-run: ALL_VSIM_FLAGS += "+firmware=custom/main.hex"
 custom-vsim-run: vsim-run
 
 .PHONY: custom-vsim-run-gui
-custom-vsim-run-gui: vsim-all custom/hello_world.hex
-custom-vsim-run-gui: ALL_VSIM_FLAGS += "+firmware=custom/hello_world.hex"
+custom-vsim-run-gui: vsim-all custom/main.hex
+custom-vsim-run-gui: ALL_VSIM_FLAGS += "+firmware=custom/main.hex"
 custom-vsim-run-gui: vsim-run-gui
 
 
 .PHONY: custom-veri-run
-custom-veri-run: verilate custom/hello_world.hex
+custom-veri-run: verilate custom/main.hex
 	./testbench_verilator $(VERI_FLAGS) \
-		"+firmware=custom/hello_world.hex"
+		"+firmware=custom/main.hex"
 
 # compile and dump picorv firmware
 firmware/firmware.elf: $(FIRMWARE_OBJS) $(FIRMWARE_TEST_OBJS) $(COMPLIANCE_TEST_OBJS) \
