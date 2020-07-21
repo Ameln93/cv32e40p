@@ -1,4 +1,4 @@
-// Copyright 2018 ETH Zurich and University of Bologna.
+
 // Copyright and related rights are licensed under the Solderpad Hardware
 // License, Version 0.51 (the "License"); you may not use this file except in
 // compliance with the License.  You may obtain a copy of the License at
@@ -2120,25 +2120,26 @@ module riscv_decoder
       OPCODE_OP_V: begin
         if (VPU == 1) begin
 
-          alu_en_o            = 1'b0;
 
-          if (instr_rdata_i[14:12] == 3'b1) begin
+          if (instr_rdata_i[14:12] == 3'b111) begin
 
             //vsetvl instruction
             // when rs1 == rd == 0 -> new avl is old vl
-            csr_access_a_o      = (instr_rdata_i[19:15] == '0 && instr_rdata_i[11:7] == '0) ? 1'b0 : 1'b1;
+            alu_en_o            = 1'b1;
+            csr_access_a_o      = (instr_rdata_i[11:7] == '0 && instr_rdata_i[19:15] == '0) ? 1'b0 : 1'b1;
             csr_access_b_o      = 1'b1;
             regfile_alu_we      = 1'b1;
             instr_multicycle_o  = 1'b1;
             csr_op              = CSR_OP_WRITE;
 
             // reg a (rs1) is only used if it is not zero and then it holds vl
-            rega_used_o         = |(instr_rdata_i[19:15]);
+            rega_used_o         = (instr_rdata_i[19:15] != '0) ? '1 : '0;
+            regb_used_o         = 0;
             // regc is used to hold vytpe
             regc_used_o         = instr_rdata_i[31];
 
-            // rs1 == 0 && rd != 0 -> set vl to vmax
-            alu_op_a_mux_sel_o  = (instr_rdata_i[19:15] == '0 && instr_rdata_i[11:7] != '0) ? OP_A_REGA_OR_FWD : OP_A_VLMAX;
+            // rs1 == 0 ->  set vl to vmax
+            alu_op_a_mux_sel_o = (instr_rdata_i[11:7] != '0 && instr_rdata_i[19:15] == 0) ? OP_A_VLMAX : OP_A_REGA_OR_FWD;
             // op b holds the csr addresses for vtypte and vl
             alu_op_b_mux_sel_o  = OP_B_VSETVL;
             // decide wheter vtype is taken from rs2 or immediate
@@ -2147,6 +2148,7 @@ module riscv_decoder
           end else begin
 
             // regular vector instruction
+            alu_en_o            = 1'b0;
             apu_en              = 1'b1;
             apu_op_o            = {APU_WOP_CPU{1'b0}};
             apu_lat_o           = 2'h2;

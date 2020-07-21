@@ -1002,7 +1002,7 @@ end //PULP_SECURE
         vtype_n   = vtype_i  | vtype_q;
       end
 
-      if (csr_access_b_i == '1 && csr_addr_b_i == CSR_VTYPE) begin
+      if (csr_access_b_i == '1 && csr_addr_b_i == CSR_VTYPE && csr_we_int == '1) begin
 
         // If SEW > 32 or LMUL != 1 or vta == 1 or vma == 1 its an illegal instruction
         if ((csr_wdata_b_i[4:2] > 3'b010) || (csr_wdata_b_i[7:5] != 3'b0) || (csr_wdata_b_i[1:0] != 2'b0)) begin
@@ -1036,8 +1036,8 @@ end //PULP_SECURE
   always_comb begin
     vl_n = vl_q;
     if (VPU == 1) begin
-      if (csr_access_a_i == '1 && csr_addr_a_i == CSR_VL) begin
-        vl_n = (csr_wdata_a_i > vlmax) ? vlmax : csr_wdata_a_i;
+      if (csr_access_a_i == '1 && csr_addr_a_i == CSR_VL && csr_we_int == '1) begin
+        vl_n = (csr_wdata_int > vlmax) ? vlmax : csr_wdata_int;
       end
     end
   end
