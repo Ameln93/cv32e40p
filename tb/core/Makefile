@@ -61,7 +61,7 @@ RTLSRC_TB_PKG		:=
 RTLSRC_TB_TOP		:= tb_top.sv
 RTLSRC_TB		:= $(filter-out riscv_tb_pkg.sv tb_top_verilator.sv,\
 				$(wildcard *.sv))
-RTLSRC_VERI_TB          := $(filter-out tb_top.sv, $(wildcard *.sv))
+RTLSRC_VERI_TB          := $(wildcard veri_wrapper/*.sv)
 RTLSRC_INCDIR           := $(RTLSRC_HOME)/rtl/include
 RTLSRC_PKG		:=  $(addprefix $(RTLSRC_HOME)/rtl/include/,\
 				fpnew_pkg.sv apu_core_package.sv riscv_defines.sv \
