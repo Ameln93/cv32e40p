@@ -96,6 +96,7 @@ CSMITH_TIMEOUT_VSIM      = 3000
 CSMITH_TIMEOUT_VERI      = 100
 
 # custom vars
+CUST_ARCH					= -march=rv32imcv
 CUST_SRC_ASM_DIR	:= custom/src/asm
 CUST_SRC_C_DIR		:= custom/src/c
 CUST_INC_DIR			:= custom/src/c/include
@@ -231,13 +232,13 @@ mkdir_cust_obj:
 
 $(CUST_OBJ_DIR)/%.o: $(CUST_SRC_C_DIR)/%.c
 	@mkdir -p $(CUST_OBJ_DIR)
-	$(RISCV_EXE_PREFIX)gcc -c -march=rv32imcv -g -Os -Wall \
+	$(RISCV_EXE_PREFIX)gcc -c $(CUST_ARCH) -g -Os -Wall \
 		$(CUST_DEPS) \
 		-nostdlib -o $@ $<
 
 $(CUST_ASM):$(CUST_ASM_DIR)/%.s: $(CUST_SRC_C_DIR)/%.c
 	@mkdir -p $(CUST_ASM_DIR)
-	$(RISCV_EXE_PREFIX)gcc -g -Os -march=rv32imcv -w -nostdlib -o $@ \
+	$(RISCV_EXE_PREFIX)gcc -g -Os $(CUST_ARCH) -w -nostdlib -o $@ \
 		$(CUST_DEPS) \
 		$< -S
 
@@ -246,7 +247,7 @@ $(CUST_DMP): custom/main.elf
 	$(RISCV_EXE_PREFIX)objdump $< -d  > $@
 
 custom/main.elf: $(CUST_OBJ)
-	$(RISCV_EXE_PREFIX)gcc -g -Os -march=rv32imcv -w -nostdlib -o $@ \
+	$(RISCV_EXE_PREFIX)gcc -g -Os $(CUST_ARCH) -w -nostdlib -o $@ \
 		$(CUST_DEPS) \
 		-T custom/src/link.ld  \
 		-static \
@@ -279,13 +280,13 @@ custom-veri-run: verilate custom/main.hex $(CUST_ASM) $(CUST_DMP)
 # compile and dump picorv firmware
 firmware/firmware.elf: $(FIRMWARE_OBJS) $(FIRMWARE_TEST_OBJS) $(COMPLIANCE_TEST_OBJS) \
 				firmware/link.ld
-	$(RISCV_EXE_PREFIX)gcc -g -Os -march=rv32imcv -ffreestanding -nostdlib -o $@ \
+	$(RISCV_EXE_PREFIX)gcc -g -Os -march=rv32imc -ffreestanding -nostdlib -o $@ \
 		$(RISCV_TEST_INCLUDES) \
 		-Wl,-Bstatic,-T,firmware/link.ld,-Map,firmware/firmware.map,--strip-debug \
 		$(FIRMWARE_OBJS) $(FIRMWARE_TEST_OBJS) $(COMPLIANCE_TEST_OBJS) -lgcc
 
 firmware/start.o: firmware/start.S
-	$(RISCV_EXE_PREFIX)gcc -c -march=rv32imcv -g -o $@ $<
+	$(RISCV_EXE_PREFIX)gcc -c -march=rv32imc -g -o $@ $<
 
 firmware/%.o: firmware/%.c
 	$(RISCV_EXE_PREFIX)gcc -c -march=rv32ic -g -Os --std=c99 -Wall \
@@ -369,7 +370,7 @@ csmith/test_ref: csmith/test.c
 	gcc -m32 -o csmith/test_ref -w -Os -I $(CSMITH_INCLUDE) csmith/test.c
 
 csmith/test.elf: csmith/test.c csmith/syscalls.c csmith/start.S
-	$(RISCV_EXE_PREFIX)gcc -march=rv32imcv -o csmith/test.elf -w -Os \
+	$(RISCV_EXE_PREFIX)gcc -march=rv32imc -o csmith/test.elf -w -Os \
 		-I $(CSMITH_INCLUDE) \
 		-T csmith/link.ld  \
 		csmith/test.c csmith/syscalls.c csmith/start.S -Wl,--verbose

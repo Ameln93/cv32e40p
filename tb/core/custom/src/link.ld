@@ -122,6 +122,12 @@ SECTIONS
   PROVIDE (_etext = .);
   PROVIDE (etext = .);
 
+  .mySectionBlock :
+  {
+    __MY_SECTION_START = .;   /* create symbol for start of section */
+    KEEP(*(.mySection))       /* keep my variable even if not referenced */
+    __MY_SECTION_END = .;     /* create symbol for end of section */
+  } > ram
 
   /* read-only sections */
   .rodata         :
