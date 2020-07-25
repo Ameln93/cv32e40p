@@ -3,13 +3,14 @@
 
 #include "vpu_asm_wrapper.h"
 
-#define SIZE 10
+#define SIZE 8
 
 extern int __MY_SECTION_START, __MY_SECTION_END;
 
-const uint8_t __attribute__((section (".mySection"))) v_a[SIZE] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-const uint8_t __attribute__((section (".mySection"))) v_b[SIZE] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-const uint8_t __attribute__((section (".mySection"))) golden[SIZE] = { 1, 4, 9, 16, 25, 36, 49, 64, 81, 100};
+uint32_t __attribute__((section (".mySection"))) v_a[SIZE] = { 1, 2, 3, 4, 5, 6, 7, 8};
+
+//const uint32_t __attribute__((section (".mySection"))) v_b[SIZE] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+//const uint32_t __attribute__((section (".mySection"))) golden[SIZE] = { 1, 4, 9, 16, 25, 36, 49, 64, 81, 100};
 uint8_t v_res[SIZE] = {0};
 
 uint32_t main(int argc, char *argv[])
@@ -34,10 +35,15 @@ uint32_t main(int argc, char *argv[])
   printf("My section start address: %p. \n", start);
   printf("My section end address:   %p. \n", end);
 
-  for (int i = 0; i < SIZE; i++) {
-    v_res[i] = v_a[i] * v_b[i];
+  printf("Load Address: %p. \n", start);
+  vpu_load(start);
+  printf("Store Address: %p. \n", (start + 16));
+  vpu_store(start+16);
 
-    if (golden[i] != v_res[i]) {
+  for (int i = 0; i < 4; i++) {
+    if (  v_a[i] != v_a[i+4] ) {
+      printf("A: %d. \n", v_a[i  ]);
+      printf("B: %d. \n", v_a[i+4]);
       err = 1;
     }
   }

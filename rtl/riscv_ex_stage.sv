@@ -204,7 +204,7 @@ module riscv_ex_stage
   always_comb begin
     for (int i = 0; i < APU_NARGS_CPU; i++) begin
       apu_operands[i] = apu_operands_i[i];
-      if (i == 2 && VPU == 1) begin
+      if (VPU == 1 && i == 1 ) begin
         apu_operands[i] = comp_vcsr_i;
       end
     end

@@ -773,6 +773,7 @@ module riscv_core
   riscv_ex_stage
   #(
    .FPU              ( FPU                ),
+   .VPU              ( VPU                ),
    .FP_DIVSQRT       ( FP_DIVSQRT         ),
    .SHARED_FP        ( SHARED_FP          ),
    .SHARED_DSP_MULT  ( SHARED_DSP_MULT    ),

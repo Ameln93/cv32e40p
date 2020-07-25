@@ -1042,6 +1042,7 @@ end //PULP_SECURE
     end
   end
 
+  assign comp_vcsr_o = {vtype_q[31], 7'b0, vstart_q[7:0], vl_q[7:0], vtype_q[7:0]};
 
   // directly output some registers
   assign m_irq_enable_o  = mstatus_q.mie & priv_lvl_q == PRIV_LVL_M;

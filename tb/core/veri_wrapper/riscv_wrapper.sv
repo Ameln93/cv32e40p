@@ -17,7 +17,8 @@ module riscv_wrapper
   parameter BOOT_ADDR         = 'h80,
   parameter PULP_SECURE       = 1,
   parameter VPU               = 1,
-  parameter VLEN              = 128
+  parameter VLEN              = 128,
+  parameter LANES             = 2
 )(
   input logic         clk_i,
   input logic         rst_ni,
@@ -36,6 +37,14 @@ logic                         instr_rvalid;
 logic [31:0]                  instr_addr;
 logic [INSTR_RDATA_WIDTH-1:0] instr_rdata;
 
+logic                         apu_req;
+logic                         apu_gnt;
+logic [2:0][31:0]             apu_operands;
+logic                         apu_rvalid;
+logic [31:0]                  apu_rdata;
+
+
+
 logic                         data_cpu_req;
 logic                         data_cpu_gnt;
 logic                         data_cpu_rvalid;
@@ -44,6 +53,16 @@ logic                         data_cpu_we;
 logic [3:0]                   data_cpu_be;
 logic [31:0]                  data_cpu_rdata;
 logic [31:0]                  data_cpu_wdata;
+
+logic                         data_vpu_req;
+logic                         data_vpu_gnt;
+logic                         data_vpu_rvalid;
+logic [31:0]                  data_vpu_addr;
+logic                         data_vpu_we;
+logic [3:0]                   data_vpu_be;
+logic [31:0]                  data_vpu_rdata;
+logic [31:0]                  data_vpu_wdata;
+
 
 logic                         data_gnt;
 logic [31:0]                  data_rdata;
@@ -97,25 +116,25 @@ riscv_core_i
   .instr_gnt_i            ( instr_gnt             ),
   .instr_rvalid_i         ( instr_rvalid          ),
 
-  .data_addr_o            ( data_cpu_addr             ),
-  .data_wdata_o           ( data_cpu_wdata            ),
-  .data_we_o              ( data_cpu_we               ),
-  .data_req_o             ( data_cpu_req              ),
-  .data_be_o              ( data_cpu_be               ),
-  .data_rdata_i           ( data_cpu_rdata            ),
-  .data_gnt_i             ( data_cpu_gnt              ),
-  .data_rvalid_i          ( data_cpu_rvalid           ),
+  .data_addr_o            ( data_cpu_addr         ),
+  .data_wdata_o           ( data_cpu_wdata        ),
+  .data_we_o              ( data_cpu_we           ),
+  .data_req_o             ( data_cpu_req          ),
+  .data_be_o              ( data_cpu_be           ),
+  .data_rdata_i           ( data_cpu_rdata        ),
+  .data_gnt_i             ( data_cpu_gnt          ),
+  .data_rvalid_i          ( data_cpu_rvalid       ),
 
-  .apu_master_req_o       (                       ),
-  .apu_master_ready_o     (                       ),
-  .apu_master_gnt_i       (                       ),
-  .apu_master_operands_o  (                       ),
-  .apu_master_op_o        (                       ),
-  .apu_master_type_o      (                       ),
-  .apu_master_flags_o     (                       ),
-  .apu_master_valid_i     (                       ),
-  .apu_master_result_i    (                       ),
-  .apu_master_flags_i     (                       ),
+  .apu_master_req_o       ( apu_req               ),
+  .apu_master_ready_o     (/*cpu is always ready*/),
+  .apu_master_gnt_i       ( apu_gnt               ),
+  .apu_master_operands_o  ( apu_operands          ),
+  .apu_master_op_o        (/*not used by vpu*/    ),
+  .apu_master_type_o      (/*not used by vpu*/    ),
+  .apu_master_flags_o     (/*not used by vpu*/    ),
+  .apu_master_valid_i     ( apu_rvalid            ),
+  .apu_master_result_i    ( apu_rcsr              ),
+  .apu_master_flags_i     ( /*not used by vpu*/   ),
 
   .irq_i                  ( irq                   ),
   .irq_id_i               ( irq_id_in             ),
@@ -134,42 +153,82 @@ riscv_core_i
   .fregfile_disable_i     ( 1'b0                  )
 );
 
-obi_arbiter DUT
+vpu_core #(
+  .VLEN   (VLEN),
+  .LANES  (LANES),
+  .ELEN   (32)
+)
+vpu_i
+(
+  .clk_i                  ( clk_i                   ),
+  .rst_ni                 ( rst_ni                  ),
+
+  // insn interface
+  .insn_req_i             ( apu_req                 ),
+  .insn_gnt_o             ( apu_gnt                 ),
+  .insn_data_i            ( apu_operands[0]         ),
+  .insn_csr_i             ( apu_operands[1]         ),
+  .insn_addr_i            ( apu_operands[2]         ),
+  .insn_rvalid_o          ( apu_rvalid              ),
+  .insn_rcsr_o            ( apu_rcsr                ),
+
+  // data interface
+  .data_req_o             ( data_vpu_req            ),
+  .data_addr_o            ( data_vpu_addr           ),
+  .data_be_o              ( data_vpu_be             ),
+  .data_we_o              ( data_vpu_we             ),
+  .data_wdata_o           ( data_vpu_wdata          ),
+  .data_gnt_i             ( data_vpu_gnt            ),
+  .data_rvalid_i          ( data_vpu_rvalid         ),
+  .data_rdata_i           ( data_vpu_rdata          ),
+
+  .dbg_ex_wb_hs_o         (                         ),
+  .dbg_ex_wb_en_o         (                         ),
+  .dbg_if_id_en_o         (                         ),
+  .dbg_alu_carry_o        (                         ),
+  .dbg_arith_result_o     (                         ),
+  .dbg_arith_valid_o      (                         ),
+  .dbg_byte_enable_o      (                         ),
+  .dbg_iteration_o        (                         ),
+  .dbg_insn_complete_o    (                         )
+);
+
+obi_arbiter arbiter_i
 (
   .clk_i                  ( clk_i                  ),
   .rst_ni                 ( rst_ni                 ),
-  // input slave a
-  .s_req_a_i              ( data_cpu_req           ),
-  .s_addr_a_i             ( data_cpu_addr          ),
-  .s_be_a_i               ( data_cpu_be            ),
-  .s_we_a_i               ( data_cpu_we            ),
-  .s_wdata_a_i            ( data_cpu_wdata         ),
+  // input slave a vpu (priorized
+  .s_req_a_i              ( data_vpu_req           ),
+  .s_addr_a_i             ( data_vpu_addr          ),
+  .s_be_a_i               ( data_vpu_be            ),
+  .s_we_a_i               ( data_vpu_we            ),
+  .s_wdata_a_i            ( data_vpu_wdata         ),
 
-  .s_gnt_a_o              ( data_cpu_gnt           ),
-  .s_rvalid_a_o           ( data_cpu_rvalid        ),
-  .s_rdata_a_o            ( data_cpu_rdata         ),
+  .s_gnt_a_o              ( data_vpu_gnt           ),
+  .s_rvalid_a_o           ( data_vpu_rvalid        ),
+  .s_rdata_a_o            ( data_vpu_rdata         ),
 
-  // input slave b
-  .s_req_b_i    (),
-  .s_addr_b_i   (),
-  .s_be_b_i     (),
-  .s_we_b_i     (),
-  .s_wdata_b_i  (),
+  // input slave b cpu
+  .s_req_b_i              ( data_cpu_req           ),
+  .s_addr_b_i             ( data_cpu_addr          ),
+  .s_be_b_i               ( data_cpu_be            ),
+  .s_we_b_i               ( data_cpu_we            ),
+  .s_wdata_b_i            ( data_cpu_wdata         ),
 
-  .s_gnt_b_o    (),
-  .s_rvalid_b_o (),
-  .s_rdata_b_o  (),
+  .s_gnt_b_o              ( data_cpu_gnt           ),
+  .s_rvalid_b_o           ( data_cpu_rvalid        ),
+  .s_rdata_b_o            ( data_cpu_rdata         ),
 
   // output master
-  .m_req_o                 ( data_req              ),
-  .m_addr_o                ( data_addr             ),
-  .m_be_o                  ( data_be               ),
-  .m_we_o                  ( data_we               ),
-  .m_wdata_o               ( data_wdata            ),
+  .m_req_o                ( data_req              ),
+  .m_addr_o               ( data_addr             ),
+  .m_be_o                 ( data_be               ),
+  .m_we_o                 ( data_we               ),
+  .m_wdata_o              ( data_wdata            ),
 
-  .m_gnt_i                 ( data_gnt              ),
-  .m_rvalid_i              ( data_rvalid           ),
-  .m_rdata_i               ( data_rdata            )
+  .m_gnt_i                ( data_gnt              ),
+  .m_rvalid_i             ( data_rvalid           ),
+  .m_rdata_i              ( data_rdata            )
 );
 
 

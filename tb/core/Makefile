@@ -68,6 +68,7 @@ RTLSRC_PKG		:=  $(addprefix $(RTLSRC_HOME)/rtl/include/,\
 				riscv_tracer_defines.sv ../../tb/tb_riscv/include/perturbation_defines.sv)
 RTLSRC			:= $(filter-out $(RTLSRC_HOME)/rtl/riscv_register_file_latch.sv,\
 				$(wildcard $(RTLSRC_HOME)/rtl/*.sv) $(RTLSRC_HOME)/tb/tb_riscv/riscv_random_stall.sv $(RTLSRC_HOME)/tb/tb_riscv/riscv_random_interrupt_generator.sv)
+
 # TODO: clean this up
 RTLSRC_VLOG_TB_TOP	:= $(basename $(notdir $(RTLSRC_TB_TOP)))
 RTLSRC_VOPT_TB_TOP	:= $(addsuffix _vopt, $(RTLSRC_VLOG_TB_TOP))
@@ -96,6 +97,11 @@ CSMITH_TIMEOUT_VSIM      = 3000
 CSMITH_TIMEOUT_VERI      = 100
 
 # custom vars
+
+RTLSRC_VPU_DIR	:= $(RISCV_VPU)/rtl
+RTLSRC_VPU_PKG	:= $(wildcard $(RTLSRC_VPU_DIR)/include/*.sv)
+RTLSRC_VPU			:= $(wildcard $(RTLSRC_VPU_DIR)/*.sv)
+
 CUST_ARCH					= -march=rv32imcv
 CUST_SRC_ASM_DIR	:= custom/src/asm
 CUST_SRC_C_DIR		:= custom/src/c
@@ -176,7 +182,10 @@ testbench_verilator: $(RTLSRC_VERI_TB) $(RTLSRC_PKG) $(RTLSRC)
 		$(VERI_TRACE) \
 		--Wno-lint --Wno-UNOPTFLAT \
 		--Wno-MODDUP +incdir+$(RTLSRC_INCDIR) --top-module \
-		tb_top_verilator $(RTLSRC_VERI_TB) $(RTLSRC_PKG) $(RTLSRC) \
+		tb_top_verilator \
+		$(RTLSRC_VERI_TB) \
+		$(RTLSRC_VPU_PKG) $(RTLSRC_VPU) \
+		$(RTLSRC_PKG) $(RTLSRC) \
 		tb_top_verilator.cpp --Mdir $(VERI_DIR) \
 		-CFLAGS "-std=gnu++11 $(VERI_CFLAGS)" \
 		$(VERI_COMPILE_FLAGS)

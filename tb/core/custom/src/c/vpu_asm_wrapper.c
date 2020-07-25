@@ -5,6 +5,16 @@ const uint32_t c_vl      = 0xC20;
 const uint32_t c_vtype   = 0xC21;
 const uint32_t c_vlenb   = 0xC22;
 
+
+inline void vpu_load(uint32_t *address){
+  asm ("vle32.v v0, (%0)": : "r" (address) );
+}
+
+inline void vpu_store(uint32_t *address){
+  asm ("vse32.v v0, (%0)": : "r" (address) );
+}
+
+
 uint32_t setvli(e_sew sew, uint32_t avl)
 {
   int32_t vl = 0;

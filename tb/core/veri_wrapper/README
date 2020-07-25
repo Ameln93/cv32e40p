@@ -1,2 +1,5 @@
 The obi arbiter is simply copy pasted from the RISCV-SIMD repo.
 You find the original file under the path Dev/hdl/core_region/src.
+
+The vpu implementation is also copy pasted from the same repo
+You find the original file under the path Dev/hdl/vpu/rtl

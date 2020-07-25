@@ -91,8 +91,9 @@ module tb_top_verilator
           .BOOT_ADDR (BOOT_ADDR),
           .PULP_SECURE (1), // need to enable -Wno-BLKANDNBLK to silence warnin
                             // about assignment from blk to non-blk
-          .VPU (1),
-          .VLEN (128)
+          .VPU    (1    ),
+          .VLEN   (128  ),
+          .LANES  (2    )
         )
 
     riscv_wrapper_i

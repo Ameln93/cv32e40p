@@ -10,8 +10,10 @@ extern const uint32_t c_vlenb;
 
 typedef enum {SEW_8, SEW_16, SEW_32} e_sew;
 
-uint32_t read_vpu_csr(uint32_t);
+void vpu_load(uint32_t*);
+void vpu_store(uint32_t*);
 
+uint32_t read_vpu_csr(uint32_t);
 uint32_t setvli(e_sew, uint32_t);
 
 uint32_t setvli_e8(uint32_t);

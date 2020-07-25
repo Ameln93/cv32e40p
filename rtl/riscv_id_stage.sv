@@ -754,7 +754,7 @@ module riscv_id_stage
       OP_C_REGC_OR_FWD:  operand_c = operand_c_fw_id;
       OP_C_REGB_OR_FWD:  operand_c = operand_b_fw_id;
       OP_C_JT:           operand_c = jump_target;
-      OP_C_VADDR:        operand_c = operand_c_fw_id;
+      OP_C_VADDR:        operand_c = operand_a_fw_id;
       OP_C_IMM:          operand_c = imm_vz_type;
       default:           operand_c = operand_c_fw_id;
     endcase // case (alu_op_c_mux_sel)

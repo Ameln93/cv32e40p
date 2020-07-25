@@ -1911,26 +1911,26 @@ module riscv_decoder
         else if (VPU == 1) begin
 
           //VPU performs Store by itself
-          alu_en_o            = 1'b0;
+          alu_en_o            = 1'b1;
           data_req            = 1'b0;
           data_we_o           = 1'b0;
 
           apu_en              = 1'b1;
-          apu_op_o            = {APU_WOP_CPU{1'b0}}; // not used so far
+          apu_op_o            = '0; // not used so far
           apu_flags_src_o     = '0;
           apu_type_o          = APUTYPE_V;
-          apu_lat_o           = 2'h3; // multicycle
+          apu_lat_o           = 2'h2;
 
           alu_op_a_mux_sel_o  = OP_A_VINSN;
           alu_op_b_mux_sel_o  = OP_B_VCSR;
           alu_op_c_mux_sel_o  = OP_C_VADDR;
 
-          rega_used_o         = 1'b0;
+          rega_used_o         = 1'b1;
           regb_used_o         = 1'b0;
-          regc_used_o         = 1'b1;
+          regc_used_o         = 1'b0;
 
           alu_operator_o      = ALU_ADD;
-          instr_multicycle_o  = 1'b1;
+          instr_multicycle_o  = 1'b0;
 
           unique case (instr_rdata_i[14:12])
             3'b110:  illegal_insn_o  = '0; // only support simple stride
@@ -1981,11 +1981,11 @@ module riscv_decoder
         else if (VPU == 1) begin
 
           // VPU performs Load
-          alu_en_o            = 1'b0;
+          alu_en_o            = 1'b1;
           data_req            = 1'b0;
 
           apu_en              = 1'b1;
-          apu_op_o            = {APU_WOP_CPU{1'b0}};
+          apu_op_o            = '0;
           apu_lat_o           = 2'h2;
           apu_flags_src_o     = '0;
           apu_type_o          = APUTYPE_V;
@@ -1994,9 +1994,9 @@ module riscv_decoder
           alu_op_b_mux_sel_o  = OP_B_VCSR;
           alu_op_c_mux_sel_o  = OP_C_VADDR;
 
-          rega_used_o         = 1'b0;
+          rega_used_o         = 1'b1;
           regb_used_o         = 1'b0;
-          regc_used_o         = 1'b1;
+          regc_used_o         = 1'b0;
 
           regfile_mem_we      = 1'b0;
           reg_fp_d_o          = 1'b0;
