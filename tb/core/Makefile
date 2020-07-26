@@ -103,18 +103,17 @@ RTLSRC_VPU_PKG	:= $(wildcard $(RTLSRC_VPU_DIR)/include/*.sv)
 RTLSRC_VPU			:= $(wildcard $(RTLSRC_VPU_DIR)/*.sv)
 
 CUST_ARCH					= -march=rv32imcv
-CUST_SRC_ASM_DIR	:= custom/src/asm
-CUST_SRC_C_DIR		:= custom/src/c
-CUST_INC_DIR			:= custom/src/c/include
+CUST_SRC_DIR			:= custom/src
+CUST_INC_DIR			:= $(CUST_SRC_DIR)/include
 CUST_OBJ_DIR			:= custom/obj
 CUST_ASM_DIR			:= custom/asm
 CUST_DMP_DIR			:= custom/dmp
 
-CUST_SRC 					:= $(wildcard $(CUST_SRC_C_DIR)/*.c)
-CUST_SRC_VPU			:= $(filter-out $(CUST_SRC_C_DIR)/syscalls.c, $(CUST_SRC))
+CUST_SRC 					:= $(wildcard $(CUST_SRC_DIR)/*.c)
+CUST_SRC_VPU			:= $(filter-out $(CUST_SRC_DIR)/syscalls.c, $(CUST_SRC))
 CUST_DEPS					:= -I$(CUST_INC_DIR)
-CUST_OBJ  				:= $(patsubst $(CUST_SRC_C_DIR)/%.c, $(CUST_OBJ_DIR)/%.o, $(CUST_SRC))
-CUST_ASM  				:= $(patsubst $(CUST_SRC_C_DIR)/%.c, $(CUST_ASM_DIR)/%.s, $(CUST_SRC_VPU))
+CUST_OBJ  				:= $(patsubst $(CUST_SRC_DIR)/%.c, $(CUST_OBJ_DIR)/%.o, $(CUST_SRC))
+CUST_ASM  				:= $(patsubst $(CUST_SRC_DIR)/%.c, $(CUST_ASM_DIR)/%.s, $(CUST_SRC_VPU))
 CUST_DMP  				:= $(CUST_DMP_DIR)/main.dump
 
 # assume verilator if no target chosen
@@ -239,13 +238,13 @@ tb-clean:
 #
 mkdir_cust_obj:
 
-$(CUST_OBJ_DIR)/%.o: $(CUST_SRC_C_DIR)/%.c
+$(CUST_OBJ_DIR)/%.o: $(CUST_SRC_DIR)/%.c
 	@mkdir -p $(CUST_OBJ_DIR)
 	$(RISCV_EXE_PREFIX)gcc -c $(CUST_ARCH) -g -Os -Wall \
 		$(CUST_DEPS) \
 		-nostdlib -o $@ $<
 
-$(CUST_ASM):$(CUST_ASM_DIR)/%.s: $(CUST_SRC_C_DIR)/%.c
+$(CUST_ASM):$(CUST_ASM_DIR)/%.s: $(CUST_SRC_DIR)/%.c
 	@mkdir -p $(CUST_ASM_DIR)
 	$(RISCV_EXE_PREFIX)gcc -g -Os $(CUST_ARCH) -w -nostdlib -o $@ \
 		$(CUST_DEPS) \
@@ -260,9 +259,9 @@ custom/main.elf: $(CUST_OBJ)
 		$(CUST_DEPS) \
 		-T custom/src/link.ld  \
 		-static \
-		$(CUST_SRC_ASM_DIR)/crt0.S \
+		$(CUST_SRC_DIR)/crt0.S \
 		$(CUST_OBJ) \
-		$(CUST_SRC_ASM_DIR)/vectors.S \
+		$(CUST_SRC_DIR)/vectors.S \
 		-I $(RISCV)/riscv32-unknown-elf/include \
 		-L $(RISCV)/riscv32-unknown-elf/lib \
 		-lc -lm -lgcc

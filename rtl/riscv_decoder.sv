@@ -1911,7 +1911,7 @@ module riscv_decoder
         else if (VPU == 1) begin
 
           //VPU performs Store by itself
-          alu_en_o            = 1'b1;
+          alu_en_o            = 1'b0;
           data_req            = 1'b0;
           data_we_o           = 1'b0;
 

@@ -1,6 +1,7 @@
 #ifndef CUSTOM_INSN_H
 #define CUSTOM_INSN_H
 
+#include "stddef.h"
 #include "stdint.h"
 
 extern const uint32_t c_vstart;
@@ -10,8 +11,9 @@ extern const uint32_t c_vlenb;
 
 typedef enum {SEW_8, SEW_16, SEW_32} e_sew;
 
-void vpu_load(uint32_t*);
-void vpu_store(uint32_t*);
+void     vadd_e32(size_t, const int32_t*, const int32_t*, int32_t*);
+void     reset_cycle_count(void);
+uint32_t get_cycle_count(void);
 
 uint32_t read_vpu_csr(uint32_t);
 uint32_t setvli(e_sew, uint32_t);

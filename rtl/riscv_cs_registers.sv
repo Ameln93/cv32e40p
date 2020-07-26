@@ -240,13 +240,6 @@ module riscv_cs_registers
       PrivLvl_t     prv;
   } Dcsr_t;
 
-`ifndef SYNTHESIS
-  initial
-  begin
-    $display("[CORE] Core settings: PULP_SECURE = %d, N_PMP_ENTRIES = %d, N_PMP_CFG %d",PULP_SECURE, N_PMP_ENTRIES, N_PMP_CFG);
-  end
-`endif
-
   typedef struct packed {
    logic  [MAX_N_PMP_ENTRIES-1:0] [31:0] pmpaddr;
    logic  [MAX_N_PMP_CFG-1:0]     [31:0] pmpcfg_packed;
@@ -1290,7 +1283,7 @@ end //PULP_SECURE
 `ifdef  ASIC_SYNTHESIS
         perf_rdata = PCCR_q[0];
 `else
-        perf_rdata = csr_addr_a_i[4:0] < N_PERF_COUNTERS ? PCCR_q[csr_addr_a_i[4:0]] : '0;
+        perf_rdata = (csr_addr_a_i[4:0] < N_PERF_COUNTERS) ? PCCR_q[csr_addr_a_i[4:0]] : '0;
 `endif
       end
     end

@@ -461,7 +461,7 @@ parameter CSR_DPC            = 12'h7b1;
 parameter CSR_DSCRATCH0      = 12'h7b2; // optional
 parameter CSR_DSCRATCH1      = 12'h7b3; // optional
 
-  // VPU
+// VPU
 parameter CSR_VSTART    = 12'h008;
 parameter CSR_VXRM      = 12'h009;
 parameter CSR_VXSAT     = 12'h00A;

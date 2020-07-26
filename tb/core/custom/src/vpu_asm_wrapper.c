@@ -6,14 +6,48 @@ const uint32_t c_vtype   = 0xC21;
 const uint32_t c_vlenb   = 0xC22;
 
 
-inline void vpu_load(uint32_t *address){
-  asm ("vle32.v v0, (%0)": : "r" (address) );
+// vector-vector add routine of 32-bit integers
+// { for (size_t i=0; i<n; i++) { z[i]=x[i]+y[i]; } }
+// a0 = n, a1 = x, a2 = y, a3 = z
+inline void vadd_e32(size_t n, const int32_t *a, const int32_t *b, int32_t *dest){
+  asm (
+      "asm_vadd_e32:                  \n\t"// Set loop label
+      "vsetvli   t0,    %[n],   e32   \n\t"// Set vector length based on 32-bit vectors
+      "vle32.v   v0,    (%[a])        \n\t"// Get first vector v0
+      "sub       %[n],  %[n],   t0    \n\t"// Decrement number done
+      "slli      t0,    t0,     2     \n\t"// Multiply number done by 4 bytes
+      "add       %[a],  %[a],   t0    \n\t"// Bump pointer a
+      "vle32.v   v1,    (%[b])        \n\t"// Get second vector v1
+      "add a2,   %[b],  t0            \n\t"// Bump pointer b
+      "vadd.vv   v2,    v0, v1        \n\t"// Sum vectors
+      "vse32.v   v2,    (%[d])        \n\t"// Store result
+      "add       %[d],  %[d],   t0    \n\t"// Bump pointer d
+      "bnez      %[n],  asm_vadd_e32  \n\t"// Loop back
+      : // no outputs
+      : [n] "r" (n), [a] "r" (a), [b] "r" (b), [d] "r" (dest)
+      );
 }
 
-inline void vpu_store(uint32_t *address){
-  asm ("vse32.v v0, (%0)": : "r" (address) );
+inline void reset_cycle_count(void)
+{
+  asm ("csrw %0, %1 \n\t" :: "n" (0xcc0), "r" (3)); // enable saturation and counters in general
+  asm ("csrw %0, %1 \n\t" :: "n" (0xcc1), "r" (1)); // enable cycle and instruction counter
+  asm ("csrw %0, %1 \n\t" :: "n" (0x780), "r" (0)); // set cycle counter to zero
+  asm ("csrw %0, %1 \n\t" :: "n" (0x781), "r" (0)); // set instruction counter to zero
 }
 
+inline uint32_t get_cycle_count(void)
+{
+  uint32_t cycles = 0;
+  asm ("csrr %0, %1 \n\t" : "=r" (cycles): "n" (0x780));
+  return cycles;
+}
+inline uint32_t get_insn_count(void)
+{
+  uint32_t cycles = 0;
+  asm ("csrr %0, %1 \n\t" : "=r" (cycles): "n" (0x781));
+  return cycles;
+}
 
 uint32_t setvli(e_sew sew, uint32_t avl)
 {
