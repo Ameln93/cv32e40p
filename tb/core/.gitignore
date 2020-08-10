@@ -17,3 +17,6 @@ vc_hdrs.h
 cobj_dir
 vpu
 fpnew
+custom/asm
+custom/dmp
+custom/obj

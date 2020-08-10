@@ -12,8 +12,11 @@ extern const uint32_t c_vlenb;
 typedef enum {SEW_8, SEW_16, SEW_32} e_sew;
 
 void     vadd_e32(size_t, const int32_t*, const int32_t*, int32_t*);
-void     reset_cycle_count(void);
+void     vmac_e32(size_t, const int32_t*, const int32_t*, int32_t*);
+
+void     reset_performance_counter(void);
 uint32_t get_cycle_count(void);
+uint32_t get_instr_count(void);
 
 uint32_t read_vpu_csr(uint32_t);
 uint32_t setvli(e_sew, uint32_t);

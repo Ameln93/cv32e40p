@@ -18,7 +18,7 @@ inline void vadd_e32(size_t n, const int32_t *a, const int32_t *b, int32_t *dest
       "slli      t0,    t0,     2     \n\t"// Multiply number done by 4 bytes
       "add       %[a],  %[a],   t0    \n\t"// Bump pointer a
       "vle32.v   v1,    (%[b])        \n\t"// Get second vector v1
-      "add a2,   %[b],  t0            \n\t"// Bump pointer b
+      "add       %[b],  %[b],   t0    \n\t"// Bump pointer b
       "vadd.vv   v2,    v0, v1        \n\t"// Sum vectors
       "vse32.v   v2,    (%[d])        \n\t"// Store result
       "add       %[d],  %[d],   t0    \n\t"// Bump pointer d
@@ -27,8 +27,30 @@ inline void vadd_e32(size_t n, const int32_t *a, const int32_t *b, int32_t *dest
       : [n] "r" (n), [a] "r" (a), [b] "r" (b), [d] "r" (dest)
       );
 }
+// vector-vector add routine of 32-bit integers
+// { for (size_t i=0; i<n; i++) { z[i]=x[i]+y[i]; } }
+// a0 = n, a1 = x, a2 = y, a3 = z
+inline void vmac_e32(size_t n, const int32_t *f1, const int32_t *f2, int32_t *acc){
+  asm (
+      "asm_vmac_e32:                  \n\t"// Set loop label
+      "vsetvli   t0,    %[n],   e32   \n\t"// Set vector length based on 32-bit vectors
+      "vle32.v   v0,    (%[a])        \n\t"// Get first vector v0
+      "sub       %[n],  %[n],   t0    \n\t"// Decrement number done
+      "slli      t0,    t0,     2     \n\t"// Multiply number done by 4 bytes
+      "add       %[a],  %[a],   t0    \n\t"// Bump pointer a
+      "vle32.v   v1,    (%[b])        \n\t"// Get second vector v1
+      "vle32.v   v2,    (%[c])        \n\t"// Get third vector v2
+      "add       %[b],  %[b],   t0    \n\t"// Bump pointer b
+      "vmacc.vv  v2,    v0, v1        \n\t"// Multiply add
+      "vse32.v   v2,    (%[c])        \n\t"// Store result
+      "add       %[c],  %[c],   t0    \n\t"// Bump pointer c
+      "bnez      %[n],  asm_vmac_e32  \n\t"// Loop back
+      : // no outputs
+      : [n] "r" (n), [a] "r" (f1), [b] "r" (f2), [c] "r" (acc)
+      );
+}
 
-inline void reset_cycle_count(void)
+inline void reset_performance_counter(void)
 {
   asm ("csrw %0, %1 \n\t" :: "n" (0xcc0), "r" (3)); // enable saturation and counters in general
   asm ("csrw %0, %1 \n\t" :: "n" (0xcc1), "r" (1)); // enable cycle and instruction counter
@@ -42,11 +64,11 @@ inline uint32_t get_cycle_count(void)
   asm ("csrr %0, %1 \n\t" : "=r" (cycles): "n" (0x780));
   return cycles;
 }
-inline uint32_t get_insn_count(void)
+inline uint32_t get_instr_count(void)
 {
-  uint32_t cycles = 0;
-  asm ("csrr %0, %1 \n\t" : "=r" (cycles): "n" (0x781));
-  return cycles;
+  uint32_t instr = 0;
+  asm ("csrr %0, %1 \n\t" : "=r" (instr): "n" (0x781));
+  return instr;
 }
 
 uint32_t setvli(e_sew sew, uint32_t avl)

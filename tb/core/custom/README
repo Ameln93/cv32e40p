@@ -1,0 +1,39 @@
+This README contains the instructions to get custom programms with VPU instructions wroking in Verilator.
+
+####################
+### Requirements ###
+####################
+1. Simulation tools
+  1. Download verilator using git clone https://github.com/verilator/verilator.git
+  2. Checkout the latest version tag (tested using Verilator 4.038 from 11. July 2020)
+  3. Install verilator, see https://github.com/verilator/verilator/blob/v4.038/docs/install.adoc#Git
+
+2. Makefile requirements
+  The Makefile in the parent directory expects two environment variables set:
+  1. $RISCV:      The Path to the RISCV toolchain. It must be compiled with vector support (e.g. rv32imv)
+  2. $RISCV_VPU:  The path to the VPU rtl directory.
+
+########################
+### Start Simulation ###
+########################
+In the parent directory execute the command
+
+    $ make custom-veri-run
+
+to run the simulation.
+
+#################
+### Structure ###
+#################
+
+- src
+  |- include
+     |- vpu_asm_wrapper.h:  Defintions of library functions using vector extension
+  |- vpu_asm_wrapper.c:     Assembly implementation of library functions using vector extension
+  |- main.c:                Custom program
+  |- link.ld:               Adopted Linker file
+  |- crt0.S                 Adopted entry point for bare metal programs
+  |- vectors.S              Interrupt handling
+  |- syscalls.S             Tunnel system calls to hosting OS
+-
+
