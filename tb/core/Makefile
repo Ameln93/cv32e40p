@@ -49,7 +49,7 @@ SIMV_FLAGS              =
 
 # verilator configuration
 VERILATOR								= verilator
-VERI_FLAGS              += "+vcd"
+VERI_FLAGS              += #"+vcd"
 VERI_COMPILE_FLAGS      += -Wno-BLKANDNBLK # hope this doesn't hurt us in the long run
 VERI_TRACE              =
 VERI_DIR                = cobj_dir
