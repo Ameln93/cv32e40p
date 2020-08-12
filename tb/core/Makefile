@@ -255,7 +255,7 @@ $(CUST_DMP): custom/main.elf
 	$(RISCV_EXE_PREFIX)objdump $< -d  > $@
 
 custom/main.elf: $(CUST_OBJ)
-	$(RISCV_EXE_PREFIX)gcc -g -Os $(CUST_ARCH) -w -nostdlib -o $@ \
+	$(RISCV_EXE_PREFIX)gcc -g -Os -o0 $(CUST_ARCH) -w -nostdlib -o $@ \
 		$(CUST_DEPS) \
 		-T custom/src/link.ld  \
 		-static \

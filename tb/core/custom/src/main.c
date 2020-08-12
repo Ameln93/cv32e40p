@@ -1,37 +1,46 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "vpu_asm_wrapper.h"
+
+//extern int __MY_SECTION_START, __MY_SECTION_END;
+//const uint32_t __attribute__((section (".mySection"))) v_a[SIZE] = { 1, 2, 3, 4};
 
 // MAX_SIZE = 2^(STEPS*STEPSIZE
 #define MAX_SIZE 4096
 #define STEPS 6
 #define STEPSIZE 2
 
-//extern int __MY_SECTION_START, __MY_SECTION_END;
-//const uint32_t __attribute__((section (".mySection"))) v_a[SIZE] = { 1, 2, 3, 4};
+// array_size_t ==  SEW
+typedef int8_t array_size_t;
 
-int32_t a[MAX_SIZE];
-int32_t b[MAX_SIZE];
-int32_t vpu_res[MAX_SIZE];
-int32_t cpu_res[MAX_SIZE];
-int32_t sizes[STEPS];
+// type comes from global_arrays.h
+array_size_t a[MAX_SIZE];
+array_size_t b[MAX_SIZE];
+array_size_t vpu_res[MAX_SIZE];
+array_size_t cpu_res[MAX_SIZE];
+size_t       sizes[STEPS];
 
 //-----------------------------------------------------------------------------
-// Plugin Testfunction here
+// Plugin Testfunctions here
 //-----------------------------------------------------------------------------
+// VPU function
 void vpu_test_function(size_t step) {
-    vmac_e32(sizes[step], &a, &b, &vpu_res);
+    //vmac_e8(sizes[step], &a, &b, &vpu_res);
+    vadd_e8(sizes[step], &a, &b, &vpu_res);
 }
 
+// CPU aquivalent
 void cpu_test_function(size_t step) {
   for (int i = 0; i < sizes[step]; i++) {
-    cpu_res[i] = (a[i] * b[i]) + cpu_res[i];
+    //cpu_res[i] = (a[i] * b[i]) + cpu_res[i];
+    cpu_res[i] = (a[i] + b[i]);
   }
 }
 //-----------------------------------------------------------------------------
 
-void print_array(size_t size, int32_t* m) {
+void print_array(size_t size, array_size_t *m) {
 
   for (int i = 0; i < size; i++) {
     printf("%ld ", m[i]);
@@ -40,14 +49,14 @@ void print_array(size_t size, int32_t* m) {
 }
 
 void init_glob_arrays() {
-  time_t  t;
+  time_t t;
 
   srand((unsigned) time(&t));
 
   for (int i = 0; i < MAX_SIZE; i++) {
 
-    a[i] = rand();
-    b[i] = rand();
+    a[i]       = rand();
+    b[i]       = rand();
     vpu_res[i] = rand();
 
     cpu_res[i] = vpu_res[i];
@@ -76,9 +85,9 @@ int main(int argc, char *argv[])
 
   int32_t vpu_cyc[STEPS]   = {0};
   int32_t vpu_instr[STEPS] = {0};
+
   int32_t cpu_cyc[STEPS]   = {0};
   int32_t cpu_instr[STEPS] = {0};
-
 
   init_glob_arrays();
 
@@ -89,8 +98,8 @@ int main(int argc, char *argv[])
   for (size_t step = 0; step < STEPS; step++) {
 
     // calculate current size (power of two)
-    for (int i = 0; i < ((step + 1) * STEPSIZE); i++) {
-      sizes[step] *= 2;
+    for (size_t i = 0; i < ((step + 1) * STEPSIZE); i++) {
+      sizes[step] = sizes[step] * 2;
     }
 
     // VPU

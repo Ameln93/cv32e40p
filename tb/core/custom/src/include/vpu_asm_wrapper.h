@@ -12,7 +12,12 @@ extern const uint32_t c_vlenb;
 typedef enum {SEW_8, SEW_16, SEW_32} e_sew;
 
 void     vadd_e32(size_t, const int32_t*, const int32_t*, int32_t*);
+void     vadd_e16(size_t, const int16_t*, const int16_t*, int16_t*);
+void     vadd_e8( size_t, const int16_t*, const int16_t*, int16_t*);
+
 void     vmac_e32(size_t, const int32_t*, const int32_t*, int32_t*);
+void     vmac_e16(size_t, const int16_t*, const int16_t*, int16_t*);
+void     vmac_e8( size_t, const int16_t*, const int16_t*, int16_t*);
 
 void     reset_performance_counter(void);
 uint32_t get_cycle_count(void);
